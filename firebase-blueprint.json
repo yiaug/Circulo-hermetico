@@ -1,0 +1,263 @@
+{
+  "entities": {
+    "user": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "isAuthorized": { "type": "boolean" },
+        "meritPoints": { "type": "number" },
+        "lastChatActivity": { "type": "string", "format": "date-time" },
+        "preferences": {
+          "type": "object",
+          "properties": {
+            "darkMode": { "type": "boolean" },
+            "fontSize": { "type": "number" }
+          }
+        },
+        "readingHistory": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "commentedBooks": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "book": {
+      "title": "Book",
+      "description": "Book details and PDF link",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "author": { "type": "string" },
+        "synopsis": { "type": "string" },
+        "category": { "type": "string" },
+        "coverUrl": { "type": "string" },
+        "pdfUrl": { "type": "string" },
+        "uploadedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "title", "author", "category", "pdfUrl"]
+    },
+    "comment": {
+      "title": "Comment",
+      "description": "Comment on a book",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "bookId": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userPhoto": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "likes": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["id", "bookId", "userId", "text", "createdAt"]
+    },
+    "chatMessage": {
+      "title": "ChatMessage",
+      "description": "Real-time community chat message",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userPhoto": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "roomId": { "type": "string" }
+      },
+      "required": ["id", "userId", "text", "createdAt", "roomId"]
+    },
+    "chatRoom": {
+      "title": "ChatRoom",
+      "description": "A community chat room",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "maxUsers": { "type": "number" },
+        "createdBy": { "type": "string" },
+        "creatorName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "activeUsers": { "type": "array", "items": { "type": "string" } },
+        "bannedUsers": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["id", "name", "createdBy", "createdAt", "maxUsers"]
+    },
+    "voiceRoom": {
+      "title": "VoiceRoom",
+      "description": "A voice discussion room for students",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "theme": { "type": "string" },
+        "maxParticipants": { "type": "number" },
+        "scheduledTime": { "type": "string", "format": "date-time" },
+        "createdBy": { "type": "string" },
+        "creatorName": { "type": "string" },
+        "activeParticipants": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "createdBy", "createdAt", "theme", "maxParticipants", "scheduledTime"]
+    },
+    "shadowEntry": {
+      "title": "ShadowEntry",
+      "description": "A private entry for self-analysis and shadow work",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "mood": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "content", "createdAt"]
+    },
+    "dailyRitual": {
+      "title": "DailyRitual",
+      "description": "A daily practice imbuing intention conscious",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "date": { "type": "string" },
+        "type": { "type": "string", "enum": ["silence", "reflection", "action", "ritual"] }
+      },
+      "required": ["id", "userId", "title", "date", "completed"]
+    },
+    "initiationLevel": {
+      "title": "InitiationLevel",
+      "description": "Progress on the initiatory path",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "level": { "type": "number" },
+        "name": { "type": "string" },
+        "unlockedAt": { "type": "string", "format": "date-time" },
+        "reflections": { "type": "string" },
+        "synthesisWork": { "type": "string" },
+        "votes": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["id", "userId", "level", "name"]
+    },
+    "transmutation": {
+      "title": "Transmutation",
+      "description": "Atanor Digital: Transmuting lead thoughts into gold",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "leadThought": { "type": "string" },
+        "goldThought": { "type": "string" },
+        "status": { "type": "string", "enum": ["calcination", "transmuted"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "transmutedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "leadThought", "status", "createdAt"]
+    },
+    "analogy": {
+      "title": "Analogy",
+      "description": "Tábua das Analogias: Connecting concepts to life",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "bookId": { "type": "string" },
+        "bookTitle": { "type": "string" },
+        "concept": { "type": "string" },
+        "lifeEvent": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "bookId", "concept", "lifeEvent", "createdAt"]
+    },
+    "settings": {
+      "title": "Settings",
+      "description": "Global application settings",
+      "type": "object",
+      "properties": {
+        "maintenance": { "type": "boolean" },
+        "registrationOpen": { "type": "boolean" }
+      }
+    },
+    "category": {
+      "title": "Category",
+      "description": "Book category",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" }
+      },
+      "required": ["name"]
+    }
+  },
+  "firestore": {
+    "/settings/{settingId}": {
+      "schema": "settings",
+      "description": "Global application settings"
+    },
+    "/users/{userId}": {
+      "schema": "user",
+      "description": "User profiles"
+    },
+    "/users/{userId}/shadowJournal/{entryId}": {
+      "schema": "shadowEntry",
+      "description": "Private shadow work journal"
+    },
+    "/users/{userId}/dailyRituals/{ritualId}": {
+      "schema": "dailyRitual",
+      "description": "User's daily practices"
+    },
+    "/users/{userId}/initiationPath/{levelId}": {
+      "schema": "initiationLevel",
+      "description": "User's progress on the initiatory path"
+    },
+    "/users/{userId}/atanor/{transmutationId}": {
+      "schema": "transmutation",
+      "description": "Atanor Digital: Transmutations"
+    },
+    "/users/{userId}/analogies/{analogyId}": {
+      "schema": "analogy",
+      "description": "Tábua das Analogias"
+    },
+    "/books/{bookId}": {
+      "schema": "book",
+      "description": "Digital library books"
+    },
+    "/books/{bookId}/comments/{commentId}": {
+      "schema": "comment",
+      "description": "Book-specific discussion forum"
+    },
+    "/chat/{messageId}": {
+      "schema": "chatMessage",
+      "description": "Global community chat"
+    },
+    "/voiceRooms/{roomId}": {
+      "schema": "voiceRoom",
+      "description": "Student voice discussion rooms"
+    },
+    "/chatRooms/{roomId}": {
+      "schema": "chatRoom",
+      "description": "Community chat rooms"
+    },
+    "/categories/{categoryId}": {
+      "schema": "category",
+      "description": "Book categories"
+    }
+  }
+}

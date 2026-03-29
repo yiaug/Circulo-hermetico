@@ -1,0 +1,259 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: users
+    // Fields: uid, email, displayName, photoURL, role, isAuthorized, meritPoints, preferences, seenOracleMessages, lastChatActivity
+    
+    // Collection: books
+    // Fields: id, title, author, synopsis, category, coverUrl, pdfUrl, uploadedBy, createdAt
+    
+    // Collection: chat
+    // Fields: id, userId, userName, userPhoto, text, createdAt, roomId
+    
+    // Collection: chatRooms
+    // Fields: id, name, maxUsers, createdBy, creatorName, createdAt, activeUsers, bannedUsers
+    
+    // Collection: voiceRooms
+    // Fields: id, name, theme, maxParticipants, scheduledTime, createdBy, creatorName, activeParticipants, createdAt
+    
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.uid == "l96Q83wqLId4dZOzvnHFI8zgq6d2" ||
+         (request.auth.token.keys().hasAll(['email']) && request.auth.token.email.lower() == "smiley62830@gmail.com") ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+    }
+
+    function isAuthorized() {
+      return isAdmin() || (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAuthorized == true);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidUrl(url) {
+      return url is string && (url.matches("^https://.*") || url.matches("^http://.*"));
+    }
+
+    function isValidString(field, minLen, maxLen) {
+      return request.resource.data[field] is string && 
+             request.resource.data[field].size() >= minLen && 
+             request.resource.data[field].size() <= maxLen;
+    }
+
+    function isValidOptionalString(field, minLen, maxLen) {
+      return !(field in request.resource.data) || 
+             (request.resource.data[field] is string && 
+              request.resource.data[field].size() >= minLen && 
+              request.resource.data[field].size() <= maxLen);
+    }
+
+    function isValidList(field, maxSize) {
+      return request.resource.data[field] is list && request.resource.data[field].size() <= maxSize;
+    }
+
+    function isRecent(field) {
+      return request.resource.data[field] is timestamp && 
+             request.resource.data[field] > request.time - duration.value(5, 'm') &&
+             request.resource.data[field] <= request.time;
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return hasOnlyAllowedFields(['uid', 'email', 'displayName', 'photoURL', 'role', 'isAuthorized', 'meritPoints', 'preferences', 'seenOracleMessages', 'lastChatActivity', 'readingHistory', 'commentedBooks']) &&
+             data.uid == request.auth.uid &&
+             data.email is string && isValidEmail(data.email) &&
+             isValidString('displayName', 1, 100) &&
+             (data.photoURL == "" || isValidUrl(data.photoURL)) &&
+             data.role in ['admin', 'user'] &&
+             data.meritPoints is number &&
+             (!( 'preferences' in data) || data.preferences is map);
+    }
+
+    function isValidBook(data) {
+      return hasOnlyAllowedFields(['id', 'title', 'author', 'synopsis', 'category', 'coverUrl', 'pdfUrl', 'uploadedBy', 'createdAt']) &&
+             hasRequiredFields(['id', 'title', 'author', 'category', 'pdfUrl', 'createdAt']) &&
+             isValidString('title', 1, 200) &&
+             isValidString('author', 1, 100) &&
+             isValidOptionalString('synopsis', 0, 2000) &&
+             isValidString('category', 1, 50) &&
+             isValidUrl(data.pdfUrl) &&
+             (data.coverUrl == "" || isValidUrl(data.coverUrl)) &&
+             isRecent('createdAt');
+    }
+
+    function isValidChatMessage(data) {
+      return hasOnlyAllowedFields(['id', 'userId', 'userName', 'userPhoto', 'text', 'createdAt', 'roomId']) &&
+             data.userId == request.auth.uid &&
+             isValidString('text', 1, 1000) &&
+             isValidString('roomId', 1, 50) &&
+             isRecent('createdAt');
+    }
+
+    function isValidChatRoom(data) {
+      return hasOnlyAllowedFields(['id', 'name', 'maxUsers', 'createdBy', 'creatorName', 'createdAt', 'activeUsers', 'bannedUsers']) &&
+             isValidString('name', 1, 100) &&
+             data.maxUsers is number && data.maxUsers >= 2 && data.maxUsers <= 50 &&
+             data.createdBy == request.auth.uid &&
+             isRecent('createdAt');
+    }
+
+    function isValidVoiceRoom(data) {
+      return hasOnlyAllowedFields(['id', 'name', 'theme', 'maxParticipants', 'scheduledTime', 'createdBy', 'creatorName', 'activeParticipants', 'createdAt']) &&
+             isValidString('name', 1, 100) &&
+             isValidString('theme', 1, 200) &&
+             data.maxParticipants is number && data.maxParticipants >= 2 && data.maxParticipants <= 20 &&
+             isRecent('createdAt');
+    }
+
+    function isValidComment(data) {
+      return hasOnlyAllowedFields(['id', 'bookId', 'userId', 'userName', 'userPhoto', 'text', 'createdAt', 'likes']) &&
+             data.userId == request.auth.uid &&
+             isValidString('text', 1, 500) &&
+             isValidString('bookId', 1, 50) &&
+             isRecent('createdAt');
+    }
+
+    function isValidCategory(data) {
+      return hasOnlyAllowedFields(['name']) &&
+             isValidString('name', 1, 50);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    // User profiles
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      
+      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data) && 
+                      request.resource.data.role == 'user' && request.resource.data.isAuthorized == false;
+      
+      allow update: if isAuthenticated() && (
+        isAdmin() || 
+        (isOwner(userId) && isValidUser(request.resource.data) &&
+         request.resource.data.role == resource.data.role &&
+         request.resource.data.isAuthorized == resource.data.isAuthorized)
+      );
+      
+      allow delete: if isAdmin();
+
+      match /shadowJournal/{entryId} {
+        allow read, write: if isOwner(userId);
+      }
+      match /dailyRituals/{ritualId} {
+        allow read, write: if isOwner(userId);
+      }
+      match /initiationPath/{levelId} {
+        allow read: if isAuthenticated();
+        allow write: if isOwner(userId) || isAdmin();
+      }
+      match /atanor/{transmutationId} {
+        allow read, write: if isOwner(userId);
+      }
+      match /analogies/{analogyId} {
+        allow read: if isAuthenticated();
+        allow write: if isOwner(userId);
+      }
+    }
+
+    // Books
+    match /books/{bookId} {
+      allow read: if isAuthorized();
+      allow create, update: if isAdmin() && isValidBook(request.resource.data);
+      allow delete: if isAdmin();
+      
+      match /comments/{commentId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated() && isValidComment(request.resource.data);
+        allow update: if isAuthenticated() && (
+          (isOwner(resource.data.userId) && isValidComment(request.resource.data) && 
+           request.resource.data.likes == resource.data.likes) || 
+          isAdmin() || 
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']) && 
+           request.resource.data.likes is list && request.resource.data.likes.size() <= 1000)
+        );
+        allow delete: if isAuthenticated() && (isOwner(resource.data.userId) || isAdmin());
+      }
+    }
+
+    // Global Chat
+    match /chat/{messageId} {
+      allow read: if isAuthorized();
+      allow create: if isAuthorized() && isValidChatMessage(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // Global Settings
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Voice Rooms
+    match /voiceRooms/{roomId} {
+      allow read: if isAuthorized();
+      allow create: if isAdmin() && isValidVoiceRoom(request.resource.data);
+      allow update: if isAuthorized() && (
+        isAdmin() ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['activeParticipants']) && 
+         isValidList('activeParticipants', 20))
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Chat Rooms
+    match /chatRooms/{roomId} {
+      allow read: if isAuthorized();
+      allow create: if isAuthorized() && isValidChatRoom(request.resource.data);
+      allow update: if isAuthorized() && (
+        isAdmin() || 
+        (isOwner(resource.data.createdBy) && isValidChatRoom(request.resource.data)) ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['activeUsers']) && 
+         isValidList('activeUsers', 50))
+      );
+      allow delete: if isAdmin() || isOwner(resource.data.createdBy);
+    }
+
+    // Categories
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin() && (request.method == 'delete' || isValidCategory(request.resource.data));
+    }
+
+    // Connection Test
+    match /test/connection {
+      allow read: if true;
+    }
+  }
+}

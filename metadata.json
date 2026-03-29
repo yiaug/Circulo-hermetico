@@ -1,0 +1,5 @@
+{
+  "name": "Círculo Hermético",
+  "description": "Um guia interativo para a jornada iniciática alquímica, com biblioteca, comunidade e oráculo hermético.",
+  "requestFramePermissions": ["microphone"]
+}
