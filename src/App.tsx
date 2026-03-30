@@ -41,7 +41,9 @@ import {
   Copy,
   MessageCircle,
   Download,
-  ChevronDown
+  ChevronDown,
+  Edit2,
+  Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { io } from 'socket.io-client';
@@ -112,23 +114,24 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
+      userId: auth.currentUser?.uid || '',
+      email: auth.currentUser?.email || '',
+      emailVerified: auth.currentUser?.emailVerified || false,
+      isAnonymous: auth.currentUser?.isAnonymous || false,
+      tenantId: auth.currentUser?.tenantId || '',
       providerInfo: auth.currentUser?.providerData.map(provider => ({
         providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
+        displayName: provider.displayName || '',
+        email: provider.email || '',
+        photoUrl: provider.photoURL || ''
       })) || []
     },
     operationType,
     path
   }
   console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  // We don't throw an error here to prevent the app from crashing and getting stuck on the loading/login screen.
+  // Instead, we log it and let the application handle the missing data gracefully.
 }
 
 // --- Utilities ---
@@ -275,10 +278,19 @@ export function AppContent() {
     }
     testConnection();
 
-    const unsubscribe = onSnapshot(collection(db, 'categories'), (snapshot) => {
-      if (!snapshot.empty) {
+    const unsubscribe = onSnapshot(collection(db, 'categories'), async (snapshot) => {
+      if (snapshot.empty) {
+        const defaultCats = ['Hermetismo', 'Magia', 'Alquimia', 'Astrologia', 'Teosofia', 'Ocultismo'];
+        try {
+          for (const cat of defaultCats) {
+            await addDoc(collection(db, 'categories'), { name: cat });
+          }
+        } catch (e) {
+          console.error('Failed to seed categories', e);
+        }
+      } else {
         const fetchedCats = snapshot.docs.map(doc => doc.data().name);
-        setCategories(['Todos', ...fetchedCats]);
+        setCategories(Array.from(new Set(['Todos', ...fetchedCats])));
       }
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'categories');
@@ -321,7 +333,11 @@ export function AppContent() {
             await updateDoc(userRef, { isAuthorized: true });
             window.history.replaceState({}, document.title, "/");
           } catch (error) {
-            handleFirestoreError(error, OperationType.UPDATE, `users/${firebaseUser.uid}`);
+            try {
+              handleFirestoreError(error, OperationType.UPDATE, `users/${firebaseUser.uid}`);
+            } catch (e) {
+              console.error("Error updating user authorization:", e);
+            }
           }
         }
 
@@ -330,7 +346,12 @@ export function AppContent() {
         try {
           userDoc = await getDoc(userRef);
         } catch (error) {
-          handleFirestoreError(error, OperationType.GET, `users/${firebaseUser.uid}`);
+          setLoading(false);
+          try {
+            handleFirestoreError(error, OperationType.GET, `users/${firebaseUser.uid}`);
+          } catch (e) {
+            console.error("Error fetching user doc:", e);
+          }
           return;
         }
 
@@ -342,12 +363,20 @@ export function AppContent() {
             photoURL: firebaseUser.photoURL || '',
             role: firebaseUser.email?.toLowerCase() === 'smiley62830@gmail.com' ? 'admin' : 'user',
             isAuthorized: firebaseUser.email?.toLowerCase() === 'smiley62830@gmail.com',
-            preferences: { darkMode: false, fontSize: 100 }
+            preferences: { darkMode: false, fontSize: 100 },
+            meritPoints: 0
           };
           try {
             await setDoc(userRef, newUser);
           } catch (error) {
-            handleFirestoreError(error, OperationType.CREATE, `users/${firebaseUser.uid}`);
+            setLoading(false);
+            showNotification(`Erro ao criar perfil: ${error instanceof Error ? error.message : String(error)}`, 'error');
+            try {
+              handleFirestoreError(error, OperationType.CREATE, `users/${firebaseUser.uid}`);
+            } catch (e) {
+              console.error("Error creating user profile:", e);
+            }
+            return;
           }
         }
 
@@ -359,7 +388,11 @@ export function AppContent() {
             // Auto-promote admin if email matches
             if (userData.email?.toLowerCase() === 'smiley62830@gmail.com' && userData.role !== 'admin') {
               updateDoc(userRef, { role: 'admin', isAuthorized: true }).catch(err => {
-                handleFirestoreError(err, OperationType.UPDATE, `users/${firebaseUser.uid}`);
+                try {
+                  handleFirestoreError(err, OperationType.UPDATE, `users/${firebaseUser.uid}`);
+                } catch (e) {
+                  console.error(e);
+                }
               });
             }
             
@@ -368,8 +401,12 @@ export function AppContent() {
           }
           setLoading(false);
         }, (error) => {
-          handleFirestoreError(error, OperationType.GET, `users/${firebaseUser.uid}`);
           setLoading(false);
+          try {
+            handleFirestoreError(error, OperationType.GET, `users/${firebaseUser.uid}`);
+          } catch (e) {
+            console.error("Error listening to user profile:", e);
+          }
         });
       } else {
         setUser(null);
@@ -493,6 +530,26 @@ export function AppContent() {
   if (!user) {
     return (
       <div className="min-h-screen bg-[#0a0a0c] flex items-center justify-center p-4 relative overflow-hidden">
+        <AnimatePresence>
+          {notification && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className={cn(
+                "fixed top-4 right-4 z-50 px-6 py-3 rounded-xl shadow-2xl border flex items-center gap-3",
+                notification.type === 'error' ? "bg-red-900/90 border-red-500/50 text-red-100" :
+                notification.type === 'success' ? "bg-emerald-900/90 border-emerald-500/50 text-emerald-100" :
+                "bg-indigo-900/90 border-indigo-500/50 text-indigo-100"
+              )}
+            >
+              {notification.type === 'error' && <AlertCircle className="w-5 h-5" />}
+              {notification.type === 'success' && <CheckCircle2 className="w-5 h-5" />}
+              {notification.type === 'info' && <Info className="w-5 h-5" />}
+              <span className="font-medium">{notification.message}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
         {/* Background Orbs */}
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-900/20 blur-[120px] rounded-full" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-900/20 blur-[120px] rounded-full" />
@@ -798,7 +855,7 @@ export function AppContent() {
           ) : activeTab === 'donation' ? (
             <DonationPanel showNotification={showNotification} />
           ) : (
-            <AdminPanel user={user} appSettings={appSettings} categories={categories} showConfirm={showConfirm} />
+            <AdminPanel user={user} appSettings={appSettings} categories={categories} books={books} showConfirm={showConfirm} />
           )}
         </AnimatePresence>
       </main>
@@ -1943,12 +2000,13 @@ function DonationPanel({ showNotification }: { showNotification: (msg: string, t
   );
 }
 
-function AdminPanel({ user, appSettings, categories, showConfirm }: { user: UserProfile, appSettings: any, categories: string[], showConfirm: (title: string, message: string, onConfirm: () => void) => void }) {
+function AdminPanel({ user, appSettings, categories, books, showConfirm }: { user: UserProfile, appSettings: any, categories: string[], books: Book[], showConfirm: (title: string, message: string, onConfirm: () => void) => void }) {
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [synopsis, setSynopsis] = useState('');
   const [category, setCategory] = useState(categories[1] || 'Hermetismo');
   const [coverUrl, setCoverUrl] = useState('');
+  const [editingBookId, setEditingBookId] = useState<string | null>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [adminTab, setAdminTab] = useState<'books' | 'categories' | 'users' | 'moderation' | 'settings'>('books');
@@ -2149,23 +2207,50 @@ function AdminPanel({ user, appSettings, categories, showConfirm }: { user: User
     setStatus('loading');
     
     try {
-      await addDoc(collection(db, 'books'), {
-        title,
-        author,
-        synopsis,
-        category,
-        coverUrl,
-        uploadedBy: user.uid,
-        createdAt: serverTimestamp()
-      });
-      setStatus('success');
+      if (editingBookId) {
+        await updateDoc(doc(db, 'books', editingBookId), {
+          title,
+          author,
+          synopsis,
+          category,
+          coverUrl
+        });
+        setStatus('success');
+        setEditingBookId(null);
+      } else {
+        await addDoc(collection(db, 'books'), {
+          title,
+          author,
+          synopsis,
+          category,
+          coverUrl,
+          uploadedBy: user.uid,
+          createdAt: serverTimestamp()
+        });
+        setStatus('success');
+      }
       setTitle(''); setAuthor(''); setSynopsis(''); setCoverUrl('');
       setTimeout(() => setStatus('idle'), 3000);
     } catch (error) {
       console.error("Upload Error:", error);
-      handleFirestoreError(error, OperationType.CREATE, 'books');
+      handleFirestoreError(error, editingBookId ? OperationType.UPDATE : OperationType.CREATE, 'books');
       setStatus('error');
     }
+  };
+
+  const startEditingBook = (book: Book) => {
+    setEditingBookId(book.id);
+    setTitle(book.title);
+    setAuthor(book.author);
+    setSynopsis(book.synopsis);
+    setCategory(book.category);
+    setCoverUrl(book.coverUrl);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cancelEditing = () => {
+    setEditingBookId(null);
+    setTitle(''); setAuthor(''); setSynopsis(''); setCoverUrl('');
   };
 
   return (
@@ -2267,17 +2352,79 @@ function AdminPanel({ user, appSettings, categories, showConfirm }: { user: User
               />
             </div>
 
-            <GlassButton 
-              type="submit" 
-              disabled={status === 'loading'}
-              className="w-full py-4 text-lg"
-            >
-              {status === 'loading' ? 'Enviando...' : 'Adicionar Livro à Biblioteca'}
-            </GlassButton>
+            <div className="flex gap-4">
+              <GlassButton 
+                type="submit" 
+                disabled={status === 'loading'}
+                className="flex-1 py-4 text-lg"
+              >
+                {status === 'loading' ? 'Salvando...' : editingBookId ? 'Salvar Alterações' : 'Adicionar Livro à Biblioteca'}
+              </GlassButton>
+              {editingBookId && (
+                <GlassButton 
+                  type="button" 
+                  variant="secondary"
+                  onClick={cancelEditing}
+                  disabled={status === 'loading'}
+                  className="py-4 px-8 text-lg"
+                >
+                  Cancelar
+                </GlassButton>
+              )}
+            </div>
 
-            {status === 'success' && <p className="text-green-400 text-center font-medium">Livro adicionado com sucesso!</p>}
-            {status === 'error' && <p className="text-red-400 text-center font-medium">Erro ao adicionar livro. Tente novamente.</p>}
+            {status === 'success' && <p className="text-green-400 text-center font-medium">{editingBookId ? 'Livro atualizado' : 'Livro adicionado'} com sucesso!</p>}
+            {status === 'error' && <p className="text-red-400 text-center font-medium">Erro ao salvar livro. Tente novamente.</p>}
           </form>
+
+          <div className="mt-12 pt-8 border-t border-white/10">
+            <h3 className="text-xl font-bold mb-6">Livros na Biblioteca</h3>
+            <div className="space-y-4">
+              {books.map(book => (
+                <GlassCard key={book.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <img src={book.coverUrl} alt={book.title} className="w-12 h-16 object-cover rounded shadow-md" />
+                    <div>
+                      <h4 className="font-bold text-lg">{book.title}</h4>
+                      <p className="text-sm text-white/50">{book.author} • {book.category}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => startEditingBook(book)}
+                      className="p-2 text-white/50 hover:text-indigo-400 transition-colors bg-white/5 rounded-lg"
+                      title="Editar"
+                    >
+                      <Edit2 className="w-5 h-5" />
+                    </button>
+                    <button 
+                      onClick={() => {
+                        showConfirm(
+                          "Remover Livro",
+                          `Tem certeza que deseja remover "${book.title}" da biblioteca?`,
+                          async () => {
+                            try {
+                              await deleteDoc(doc(db, 'books', book.id));
+                            } catch (error) {
+                              console.error("Error deleting book:", error);
+                              handleFirestoreError(error, OperationType.DELETE, `books/${book.id}`);
+                            }
+                          }
+                        );
+                      }}
+                      className="p-2 text-white/50 hover:text-red-400 transition-colors bg-white/5 rounded-lg"
+                      title="Remover"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                </GlassCard>
+              ))}
+              {books.length === 0 && (
+                <p className="text-center text-white/50 py-8">Nenhum livro na biblioteca.</p>
+              )}
+            </div>
+          </div>
 
           <div className="mt-12 pt-8 border-t border-white/10">
             <h3 className="text-lg font-bold mb-4">Ações Rápidas</h3>

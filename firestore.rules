@@ -54,7 +54,7 @@ service cloud.firestore {
     }
 
     function isValidEmail(email) {
-      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+      return email is string && (email == "" || email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"));
     }
 
     function isValidUrl(url) {
@@ -84,6 +84,11 @@ service cloud.firestore {
              request.resource.data[field] <= request.time;
     }
 
+    function isRecentOrUnchanged(field) {
+      return (resource == null && isRecent(field)) ||
+             (resource != null && request.resource.data[field] == resource.data[field]);
+    }
+
     // ===============================================================
     // Domain Validators
     // ===============================================================
@@ -95,20 +100,24 @@ service cloud.firestore {
              isValidString('displayName', 1, 100) &&
              (data.photoURL == "" || isValidUrl(data.photoURL)) &&
              data.role in ['admin', 'user'] &&
-             data.meritPoints is number &&
-             (!( 'preferences' in data) || data.preferences is map);
+             (!('isAuthorized' in data) || data.isAuthorized is bool) &&
+             (!('meritPoints' in data) || data.meritPoints is number) &&
+             (!('preferences' in data) || data.preferences is map) &&
+             (!('seenOracleMessages' in data) || data.seenOracleMessages is list) &&
+             (!('lastChatActivity' in data) || data.lastChatActivity is string) &&
+             (!('readingHistory' in data) || data.readingHistory is list) &&
+             (!('commentedBooks' in data) || data.commentedBooks is list);
     }
 
     function isValidBook(data) {
-      return hasOnlyAllowedFields(['id', 'title', 'author', 'synopsis', 'category', 'coverUrl', 'pdfUrl', 'uploadedBy', 'createdAt']) &&
-             hasRequiredFields(['id', 'title', 'author', 'category', 'pdfUrl', 'createdAt']) &&
+      return hasOnlyAllowedFields(['title', 'author', 'synopsis', 'category', 'coverUrl', 'uploadedBy', 'createdAt']) &&
+             hasRequiredFields(['title', 'author', 'category', 'createdAt']) &&
              isValidString('title', 1, 200) &&
              isValidString('author', 1, 100) &&
              isValidOptionalString('synopsis', 0, 2000) &&
              isValidString('category', 1, 50) &&
-             isValidUrl(data.pdfUrl) &&
              (data.coverUrl == "" || isValidUrl(data.coverUrl)) &&
-             isRecent('createdAt');
+             isRecentOrUnchanged('createdAt');
     }
 
     function isValidChatMessage(data) {
@@ -116,7 +125,7 @@ service cloud.firestore {
              data.userId == request.auth.uid &&
              isValidString('text', 1, 1000) &&
              isValidString('roomId', 1, 50) &&
-             isRecent('createdAt');
+             isRecentOrUnchanged('createdAt');
     }
 
     function isValidChatRoom(data) {
@@ -124,7 +133,7 @@ service cloud.firestore {
              isValidString('name', 1, 100) &&
              data.maxUsers is number && data.maxUsers >= 2 && data.maxUsers <= 50 &&
              data.createdBy == request.auth.uid &&
-             isRecent('createdAt');
+             isRecentOrUnchanged('createdAt');
     }
 
     function isValidVoiceRoom(data) {
@@ -132,7 +141,7 @@ service cloud.firestore {
              isValidString('name', 1, 100) &&
              isValidString('theme', 1, 200) &&
              data.maxParticipants is number && data.maxParticipants >= 2 && data.maxParticipants <= 20 &&
-             isRecent('createdAt');
+             isRecentOrUnchanged('createdAt');
     }
 
     function isValidComment(data) {
@@ -140,7 +149,7 @@ service cloud.firestore {
              data.userId == request.auth.uid &&
              isValidString('text', 1, 500) &&
              isValidString('bookId', 1, 50) &&
-             isRecent('createdAt');
+             isRecentOrUnchanged('createdAt');
     }
 
     function isValidCategory(data) {
@@ -157,13 +166,14 @@ service cloud.firestore {
       allow read: if isOwner(userId) || isAdmin();
       
       allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data) && 
-                      request.resource.data.role == 'user' && request.resource.data.isAuthorized == false;
+                      ((request.resource.data.role == 'user' && request.resource.data.isAuthorized == false) || isAdmin());
       
       allow update: if isAuthenticated() && (
         isAdmin() || 
         (isOwner(userId) && isValidUser(request.resource.data) &&
-         request.resource.data.role == resource.data.role &&
-         request.resource.data.isAuthorized == resource.data.isAuthorized)
+         request.resource.data.get('role', 'user') == resource.data.get('role', 'user') &&
+         request.resource.data.get('isAuthorized', false) == resource.data.get('isAuthorized', false) &&
+         request.resource.data.get('meritPoints', 0) == resource.data.get('meritPoints', 0))
       );
       
       allow delete: if isAdmin();
