@@ -821,7 +821,7 @@ export function AppContent() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {books
-                  .filter(b => (selectedCategory === 'Todos' || b.category === selectedCategory) && 
+                  .filter(b => (selectedCategory === 'Todos' || (b.categories && b.categories.includes(selectedCategory))) && 
                     (b.title.toLowerCase().includes(searchQuery.toLowerCase()) || b.author.toLowerCase().includes(searchQuery.toLowerCase())))
                   .map(book => (
                     <BookCard 
@@ -2004,7 +2004,7 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [synopsis, setSynopsis] = useState('');
-  const [category, setCategory] = useState(categories[1] || 'Hermetismo');
+  const [bookCategories, setBookCategories] = useState<string[]>([categories[1] || 'Hermetismo']);
   const [coverUrl, setCoverUrl] = useState('');
   const [editingBookId, setEditingBookId] = useState<string | null>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -2019,8 +2019,8 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
   const availableCategories = categories.filter(c => c !== 'Todos');
 
   useEffect(() => {
-    if (availableCategories.length > 0 && !availableCategories.includes(category)) {
-      setCategory(availableCategories[0]);
+    if (availableCategories.length > 0 && bookCategories.length === 0) {
+      setBookCategories([availableCategories[0]]);
     }
   }, [categories]);
 
@@ -2159,28 +2159,28 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
         title: "O Caibalion",
         author: "Três Iniciados",
         synopsis: "Um estudo sobre a filosofia hermética do antigo Egito e da Grécia. Os sete princípios herméticos que regem o universo.",
-        category: "Hermetismo",
+        categories: ["Hermetismo"],
         coverUrl: "https://images.unsplash.com/photo-1516414447565-b14be0adf13e?auto=format&fit=crop&q=80&w=400"
       },
       {
         title: "Dogma e Ritual da Alta Magia",
         author: "Eliphas Levi",
         synopsis: "A obra fundamental do ocultismo moderno, dividida em Dogma (teoria) e Ritual (prática).",
-        category: "Magia",
+        categories: ["Magia"],
         coverUrl: "https://images.unsplash.com/photo-1532012197267-da84d127e765?auto=format&fit=crop&q=80&w=400"
       },
       {
         title: "A Voz do Silêncio",
         author: "Helena Blavatsky",
         synopsis: "Fragmentos escolhidos do 'Livro dos Preceitos de Ouro'. Um guia para o caminho da iluminação e compaixão.",
-        category: "Teosofia",
+        categories: ["Teosofia"],
         coverUrl: "https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&q=80&w=400"
       },
       {
         title: "Livro de Teste",
         author: "Sistema",
         synopsis: "Um documento de teste com texto aleatório para verificar as funcionalidades.",
-        category: "Ocultismo",
+        categories: ["Ocultismo"],
         coverUrl: "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&q=80&w=400"
       }
     ];
@@ -2212,7 +2212,7 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
           title,
           author,
           synopsis,
-          category,
+          categories: bookCategories,
           coverUrl
         });
         setStatus('success');
@@ -2222,14 +2222,14 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
           title,
           author,
           synopsis,
-          category,
+          categories: bookCategories,
           coverUrl,
           uploadedBy: user.uid,
           createdAt: serverTimestamp()
         });
         setStatus('success');
       }
-      setTitle(''); setAuthor(''); setSynopsis(''); setCoverUrl('');
+      setTitle(''); setAuthor(''); setSynopsis(''); setCoverUrl(''); setBookCategories([categories.filter(c => c !== 'Todos')[0] || 'Hermetismo']);
       setTimeout(() => setStatus('idle'), 3000);
     } catch (error) {
       console.error("Upload Error:", error);
@@ -2243,7 +2243,7 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
     setTitle(book.title);
     setAuthor(book.author);
     setSynopsis(book.synopsis);
-    setCategory(book.category);
+    setBookCategories(book.categories || []);
     setCoverUrl(book.coverUrl);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -2251,6 +2251,7 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
   const cancelEditing = () => {
     setEditingBookId(null);
     setTitle(''); setAuthor(''); setSynopsis(''); setCoverUrl('');
+    setBookCategories([categories.filter(c => c !== 'Todos')[0] || 'Hermetismo']);
   };
 
   return (
@@ -2318,15 +2319,25 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-white/70">Categoria</label>
-              <select 
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:ring-2 focus:ring-indigo-500/50 outline-none appearance-none"
-              >
+              <div className="flex flex-wrap gap-2 p-2 bg-white/5 border border-white/10 rounded-xl min-h-[42px]">
                 {availableCategories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
+                  <label key={cat} className="flex items-center gap-2 cursor-pointer p-1">
+                    <input 
+                      type="checkbox" 
+                      className="rounded border-white/20 bg-white/5 text-indigo-500 focus:ring-indigo-500"
+                      checked={bookCategories.includes(cat)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setBookCategories([...bookCategories, cat]);
+                        } else {
+                          setBookCategories(bookCategories.filter(c => c !== cat));
+                        }
+                      }}
+                    />
+                    <span className="text-sm">{cat}</span>
+                  </label>
                 ))}
-              </select>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -2386,7 +2397,7 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
                     <img src={book.coverUrl} alt={book.title} className="w-12 h-16 object-cover rounded shadow-md" />
                     <div>
                       <h4 className="font-bold text-lg">{book.title}</h4>
-                      <p className="text-sm text-white/50">{book.author} • {book.category}</p>
+                      <p className="text-sm text-white/50">{book.author} • {book.categories?.join(', ')}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

@@ -21,7 +21,7 @@ export interface Book {
   title: string;
   author: string;
   synopsis: string;
-  category: string;
+  categories: string[];
   coverUrl: string;
   uploadedBy: string;
   createdAt: any;

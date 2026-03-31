@@ -35,7 +35,7 @@ service cloud.firestore {
     function isAdmin() {
       return isAuthenticated() && 
         (request.auth.uid == "l96Q83wqLId4dZOzvnHFI8zgq6d2" ||
-         (request.auth.token.keys().hasAll(['email']) && request.auth.token.email.lower() == "smiley62830@gmail.com") ||
+         (request.auth.token.keys().hasAll(['email']) && request.auth.token.email.lower() == "smiley62830@gmail.com" && request.auth.token.email_verified == true) ||
          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
     }
@@ -54,11 +54,11 @@ service cloud.firestore {
     }
 
     function isValidEmail(email) {
-      return email is string && (email == "" || email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"));
+      return email is string && email.size() <= 254 && (email == "" || email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"));
     }
 
     function isValidUrl(url) {
-      return url is string && (url.matches("^https://.*") || url.matches("^http://.*"));
+      return url is string && url.size() <= 2000 && (url.matches("^https://.*") || url.matches("^http://.*"));
     }
 
     function isValidString(field, minLen, maxLen) {
@@ -74,8 +74,8 @@ service cloud.firestore {
               request.resource.data[field].size() <= maxLen);
     }
 
-    function isValidList(field, maxSize) {
-      return request.resource.data[field] is list && request.resource.data[field].size() <= maxSize;
+    function isValidList(listData, maxSize) {
+      return listData is list && listData.size() <= maxSize;
     }
 
     function isRecent(field) {
@@ -103,19 +103,19 @@ service cloud.firestore {
              (!('isAuthorized' in data) || data.isAuthorized is bool) &&
              (!('meritPoints' in data) || data.meritPoints is number) &&
              (!('preferences' in data) || data.preferences is map) &&
-             (!('seenOracleMessages' in data) || data.seenOracleMessages is list) &&
-             (!('lastChatActivity' in data) || data.lastChatActivity is string) &&
-             (!('readingHistory' in data) || data.readingHistory is list) &&
-             (!('commentedBooks' in data) || data.commentedBooks is list);
+             (!('seenOracleMessages' in data) || isValidList(data.seenOracleMessages, 1000)) &&
+             (!('lastChatActivity' in data) || (data.lastChatActivity is string && data.lastChatActivity.size() <= 100)) &&
+             (!('readingHistory' in data) || isValidList(data.readingHistory, 1000)) &&
+             (!('commentedBooks' in data) || isValidList(data.commentedBooks, 1000));
     }
 
     function isValidBook(data) {
-      return hasOnlyAllowedFields(['title', 'author', 'synopsis', 'category', 'coverUrl', 'uploadedBy', 'createdAt']) &&
-             hasRequiredFields(['title', 'author', 'category', 'createdAt']) &&
+      return hasOnlyAllowedFields(['title', 'author', 'synopsis', 'categories', 'coverUrl', 'uploadedBy', 'createdAt']) &&
+             hasRequiredFields(['title', 'author', 'categories', 'createdAt']) &&
              isValidString('title', 1, 200) &&
              isValidString('author', 1, 100) &&
              isValidOptionalString('synopsis', 0, 2000) &&
-             isValidString('category', 1, 50) &&
+             isValidList(data.categories, 10) &&
              (data.coverUrl == "" || isValidUrl(data.coverUrl)) &&
              isRecentOrUnchanged('createdAt');
     }
@@ -123,6 +123,8 @@ service cloud.firestore {
     function isValidChatMessage(data) {
       return hasOnlyAllowedFields(['id', 'userId', 'userName', 'userPhoto', 'text', 'createdAt', 'roomId']) &&
              data.userId == request.auth.uid &&
+             isValidString('userName', 1, 100) &&
+             (data.userPhoto == "" || isValidUrl(data.userPhoto)) &&
              isValidString('text', 1, 1000) &&
              isValidString('roomId', 1, 50) &&
              isRecentOrUnchanged('createdAt');
@@ -131,8 +133,11 @@ service cloud.firestore {
     function isValidChatRoom(data) {
       return hasOnlyAllowedFields(['id', 'name', 'maxUsers', 'createdBy', 'creatorName', 'createdAt', 'activeUsers', 'bannedUsers']) &&
              isValidString('name', 1, 100) &&
+             isValidString('creatorName', 1, 100) &&
              data.maxUsers is number && data.maxUsers >= 2 && data.maxUsers <= 50 &&
              data.createdBy == request.auth.uid &&
+             (!('activeUsers' in data) || isValidList(data.activeUsers, 50)) &&
+             (!('bannedUsers' in data) || isValidList(data.bannedUsers, 1000)) &&
              isRecentOrUnchanged('createdAt');
     }
 
@@ -140,21 +145,76 @@ service cloud.firestore {
       return hasOnlyAllowedFields(['id', 'name', 'theme', 'maxParticipants', 'scheduledTime', 'createdBy', 'creatorName', 'activeParticipants', 'createdAt']) &&
              isValidString('name', 1, 100) &&
              isValidString('theme', 1, 200) &&
+             isValidString('creatorName', 1, 100) &&
              data.maxParticipants is number && data.maxParticipants >= 2 && data.maxParticipants <= 20 &&
+             (!('activeParticipants' in data) || isValidList(data.activeParticipants, 20)) &&
              isRecentOrUnchanged('createdAt');
     }
 
     function isValidComment(data) {
       return hasOnlyAllowedFields(['id', 'bookId', 'userId', 'userName', 'userPhoto', 'text', 'createdAt', 'likes']) &&
              data.userId == request.auth.uid &&
+             isValidString('userName', 1, 100) &&
+             (data.userPhoto == "" || isValidUrl(data.userPhoto)) &&
              isValidString('text', 1, 500) &&
              isValidString('bookId', 1, 50) &&
+             (!('likes' in data) || isValidList(data.likes, 1000)) &&
              isRecentOrUnchanged('createdAt');
     }
 
     function isValidCategory(data) {
       return hasOnlyAllowedFields(['name']) &&
              isValidString('name', 1, 50);
+    }
+
+    function isValidShadowEntry(data) {
+      return hasOnlyAllowedFields(['id', 'userId', 'title', 'content', 'mood', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             isValidString('title', 1, 200) &&
+             isValidString('content', 1, 5000) &&
+             isValidString('mood', 1, 50) &&
+             isRecentOrUnchanged('createdAt');
+    }
+
+    function isValidDailyRitual(data) {
+      return hasOnlyAllowedFields(['id', 'userId', 'title', 'description', 'completed', 'date', 'type']) &&
+             data.userId == request.auth.uid &&
+             isValidString('title', 1, 200) &&
+             isValidString('description', 0, 1000) &&
+             data.completed is bool &&
+             isValidString('date', 10, 10) &&
+             data.type in ['silence', 'reflection', 'action', 'ritual'];
+    }
+
+    function isValidInitiationLevel(data, pathUserId) {
+      return hasOnlyAllowedFields(['id', 'userId', 'level', 'name', 'unlockedAt', 'reflections', 'synthesisWork', 'votes']) &&
+             data.userId == pathUserId &&
+             data.level is number &&
+             isValidString('name', 1, 100) &&
+             (!('reflections' in data) || isValidString('reflections', 0, 5000)) &&
+             (!('synthesisWork' in data) || isValidString('synthesisWork', 0, 5000)) &&
+             (!('votes' in data) || isValidList(data.votes, 1000)) &&
+             isRecentOrUnchanged('unlockedAt');
+    }
+
+    function isValidTransmutation(data) {
+      return hasOnlyAllowedFields(['id', 'userId', 'leadThought', 'goldThought', 'status', 'createdAt', 'transmutedAt']) &&
+             data.userId == request.auth.uid &&
+             isValidString('leadThought', 1, 1000) &&
+             (!('goldThought' in data) || isValidString('goldThought', 0, 1000)) &&
+             data.status in ['calcination', 'transmuted'] &&
+             isRecentOrUnchanged('createdAt') &&
+             (!('transmutedAt' in data) || isRecentOrUnchanged('transmutedAt'));
+    }
+
+    function isValidAnalogy(data) {
+      return hasOnlyAllowedFields(['id', 'userId', 'bookId', 'bookTitle', 'concept', 'lifeEvent', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             isValidString('bookId', 1, 50) &&
+             isValidString('bookTitle', 1, 200) &&
+             isValidString('concept', 1, 1000) &&
+             isValidString('lifeEvent', 1, 5000) &&
+             isRecentOrUnchanged('createdAt');
     }
 
     // ===============================================================
@@ -179,21 +239,24 @@ service cloud.firestore {
       allow delete: if isAdmin();
 
       match /shadowJournal/{entryId} {
-        allow read, write: if isOwner(userId);
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId) && (request.method == 'delete' || isValidShadowEntry(request.resource.data));
       }
       match /dailyRituals/{ritualId} {
-        allow read, write: if isOwner(userId);
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId) && (request.method == 'delete' || isValidDailyRitual(request.resource.data));
       }
       match /initiationPath/{levelId} {
         allow read: if isAuthenticated();
-        allow write: if isOwner(userId) || isAdmin();
+        allow write: if (isOwner(userId) || isAdmin()) && (request.method == 'delete' || isValidInitiationLevel(request.resource.data, userId));
       }
       match /atanor/{transmutationId} {
-        allow read, write: if isOwner(userId);
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId) && (request.method == 'delete' || isValidTransmutation(request.resource.data));
       }
       match /analogies/{analogyId} {
         allow read: if isAuthenticated();
-        allow write: if isOwner(userId);
+        allow write: if isOwner(userId) && (request.method == 'delete' || isValidAnalogy(request.resource.data));
       }
     }
 
@@ -237,7 +300,7 @@ service cloud.firestore {
       allow update: if isAuthorized() && (
         isAdmin() ||
         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['activeParticipants']) && 
-         isValidList('activeParticipants', 20))
+         isValidList(request.resource.data.activeParticipants, 20))
       );
       allow delete: if isAdmin();
     }
@@ -250,7 +313,7 @@ service cloud.firestore {
         isAdmin() || 
         (isOwner(resource.data.createdBy) && isValidChatRoom(request.resource.data)) ||
         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['activeUsers']) && 
-         isValidList('activeUsers', 50))
+         isValidList(request.resource.data.activeUsers, 50))
       );
       allow delete: if isAdmin() || isOwner(resource.data.createdBy);
     }

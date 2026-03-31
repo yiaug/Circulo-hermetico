@@ -40,13 +40,16 @@
         "title": { "type": "string" },
         "author": { "type": "string" },
         "synopsis": { "type": "string" },
-        "category": { "type": "string" },
+        "categories": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
         "coverUrl": { "type": "string" },
         "pdfUrl": { "type": "string" },
         "uploadedBy": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "title", "author", "category", "pdfUrl"]
+      "required": ["id", "title", "author", "categories", "pdfUrl"]
     },
     "comment": {
       "title": "Comment",
