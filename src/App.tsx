@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-// Triggering a small change to reset the GitHub diff viewer
+// Forçando uma nova atualização para liberar o botão do GitHub
 import { 
   Book as BookIcon, 
   AlertCircle,
