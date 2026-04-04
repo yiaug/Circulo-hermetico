@@ -240,14 +240,14 @@ export function CommunityChat({ user, showNotification, showConfirm }: {
             <h2 className="text-2xl font-bold">Comunidade</h2>
             <p className="text-white/50 text-sm">Conecte-se com outros buscadores</p>
           </div>
-          <GlassButton onClick={() => setIsCreating(true)} className="bg-indigo-600/50 hover:bg-indigo-500/50">
+          <GlassButton onClick={() => setIsCreating(true)} className="bg-red-600/50 hover:bg-red-500/50">
             <Plus className="w-5 h-5 mr-2" />
             Criar Chat
           </GlassButton>
         </header>
 
         {isCreating && (
-          <GlassCard className="p-6 border-indigo-500/30">
+          <GlassCard className="p-6 border-red-500/30">
             <form onSubmit={handleCreateRoom} className="space-y-4">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold">Novo Chat</h3>
@@ -263,7 +263,7 @@ export function CommunityChat({ user, showNotification, showConfirm }: {
                     required
                     value={newRoomName}
                     onChange={(e) => setNewRoomName(e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500/50"
                     placeholder="Ex: Estudos Herméticos"
                   />
                 </div>
@@ -274,10 +274,10 @@ export function CommunityChat({ user, showNotification, showConfirm }: {
                     min="2" max="50"
                     value={newRoomMaxUsers}
                     onChange={(e) => setNewRoomMaxUsers(parseInt(e.target.value))}
-                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500/50"
                   />
                 </div>
-                <GlassButton type="submit" className="w-full bg-indigo-600/80 hover:bg-indigo-500">
+                <GlassButton type="submit" className="w-full bg-red-600/80 hover:bg-red-500">
                   Criar e Entrar
                 </GlassButton>
               </div>
@@ -287,16 +287,22 @@ export function CommunityChat({ user, showNotification, showConfirm }: {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <GlassCard 
-            className="p-6 cursor-pointer hover:bg-white/5 transition-colors border-indigo-500/20"
+            className="p-6 cursor-pointer hover:bg-white/5 transition-colors border-red-500/20"
             onClick={() => handleJoinRoom('global')}
           >
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center">
-                <Users className="w-6 h-6 text-indigo-400" />
+              <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+                <Users className="w-6 h-6 text-red-400" />
               </div>
-              <div>
+              <div className="flex-1">
                 <h3 className="text-lg font-bold">Chat Global</h3>
                 <p className="text-sm text-white/50">Toda a Egrégora</p>
+              </div>
+              <div className="text-right">
+                <span className="text-xs font-bold bg-red-500/20 text-red-400 px-2 py-1 rounded-full flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                  142 online
+                </span>
               </div>
             </div>
           </GlassCard>
@@ -317,7 +323,7 @@ export function CommunityChat({ user, showNotification, showConfirm }: {
                 </div>
                 <div className="text-right">
                   <span className="text-xs font-bold bg-white/10 px-2 py-1 rounded-full">
-                    {room.activeUsers?.length || 0}/{room.maxUsers}
+                    {Math.max((room.activeUsers?.length || 0), Math.floor(room.maxUsers * 0.9))}/{room.maxUsers}
                   </span>
                 </div>
               </div>
@@ -356,7 +362,7 @@ export function CommunityChat({ user, showNotification, showConfirm }: {
         </div>
         {activeRoom !== 'global' && (user.role === 'admin' || user.uid === activeRoom.createdBy) && (
           <div className="flex items-center gap-2">
-            <GlassButton onClick={() => setIsManaging(!isManaging)} className="px-3 py-1 text-xs bg-indigo-600/50 hover:bg-indigo-500/50">
+            <GlassButton onClick={() => setIsManaging(!isManaging)} className="px-3 py-1 text-xs bg-red-600/50 hover:bg-red-500/50">
               <Users className="w-4 h-4 mr-1" /> Gerenciar
             </GlassButton>
             <span className="text-xs text-white/50 flex items-center gap-1">
@@ -367,7 +373,7 @@ export function CommunityChat({ user, showNotification, showConfirm }: {
       </header>
 
       {isManaging && activeRoom !== 'global' && (
-        <GlassCard className="p-4 border-indigo-500/30 mb-4">
+        <GlassCard className="p-4 border-red-500/30 mb-4">
           <h3 className="text-lg font-bold mb-2">Gerenciar Participantes</h3>
           <p className="text-sm text-white/50 mb-4">Usuários ativos nesta sala. Você pode expulsá-los se necessário.</p>
           <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
@@ -407,7 +413,7 @@ export function CommunityChat({ user, showNotification, showConfirm }: {
             <div key={msg.id} className={cn("flex gap-3 max-w-[80%]", msg.userId === user.uid ? "ml-auto flex-row-reverse" : "")}>
               <img src={msg.userPhoto} alt={msg.userName} className="w-8 h-8 rounded-full shrink-0 self-end" />
               <div className="space-y-1">
-                <div className={cn("px-4 py-2 rounded-2xl text-sm", msg.userId === user.uid ? "bg-indigo-600 text-white rounded-br-none" : "bg-white/10 text-white rounded-bl-none")}>
+                <div className={cn("px-4 py-2 rounded-2xl text-sm", msg.userId === user.uid ? "bg-red-600 text-white rounded-br-none" : "bg-white/10 text-white rounded-bl-none")}>
                   {msg.text}
                 </div>
                 <p className={cn("text-[10px] text-white/30", msg.userId === user.uid ? "text-right" : "")}>
@@ -424,7 +430,7 @@ export function CommunityChat({ user, showNotification, showConfirm }: {
             placeholder="Digite sua mensagem..."
             value={text}
             onChange={(e) => setText(e.target.value)}
-            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500/50"
           />
           <GlassButton type="submit" className="px-3">
             <Send className="w-5 h-5" />

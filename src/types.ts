@@ -23,6 +23,7 @@ export interface Book {
   synopsis: string;
   categories: string[];
   coverUrl: string;
+  pdfUrl?: string;
   uploadedBy: string;
   createdAt: any;
 }

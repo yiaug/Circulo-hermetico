@@ -4,7 +4,7 @@ import { cn } from '../lib/utils';
 
 const GlassButton = ({ children, className, variant = 'primary', ...props }: any) => {
   const variants = {
-    primary: "bg-indigo-600/80 hover:bg-indigo-500 text-white",
+    primary: "bg-red-600/80 hover:bg-red-500 text-white",
     secondary: "bg-white/10 hover:bg-white/20 text-white border border-white/20",
     ghost: "hover:bg-white/10 text-white/80 hover:text-white",
     danger: "bg-red-500/80 hover:bg-red-400 text-white"

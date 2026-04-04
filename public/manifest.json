@@ -1,0 +1,17 @@
+{
+  "name": "Egrégora Digital",
+  "short_name": "Egrégora",
+  "description": "Comunidade e Conhecimento Hermético",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

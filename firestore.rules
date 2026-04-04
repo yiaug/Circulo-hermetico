@@ -110,13 +110,14 @@ service cloud.firestore {
     }
 
     function isValidBook(data) {
-      return hasOnlyAllowedFields(['title', 'author', 'synopsis', 'categories', 'coverUrl', 'uploadedBy', 'createdAt']) &&
+      return hasOnlyAllowedFields(['title', 'author', 'synopsis', 'categories', 'coverUrl', 'pdfUrl', 'uploadedBy', 'createdAt']) &&
              hasRequiredFields(['title', 'author', 'categories', 'createdAt']) &&
              isValidString('title', 1, 200) &&
              isValidString('author', 1, 100) &&
              isValidOptionalString('synopsis', 0, 2000) &&
              isValidList(data.categories, 10) &&
              (data.coverUrl == "" || isValidUrl(data.coverUrl)) &&
+             (!('pdfUrl' in data) || data.pdfUrl == "" || isValidUrl(data.pdfUrl)) &&
              isRecentOrUnchanged('createdAt');
     }
 

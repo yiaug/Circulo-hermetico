@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+// Triggering a small change to reset the GitHub diff viewer
 import { 
   Book as BookIcon, 
   AlertCircle,
@@ -152,7 +153,7 @@ const PLANETARY_SYMBOLS: Record<string, string> = {
 };
 
 const PLANETARY_COLORS: Record<string, string> = {
-  Sun: 'text-amber-400', Moon: 'text-indigo-200', Mars: 'text-red-500', 
+  Sun: 'text-amber-400', Moon: 'text-red-200', Mars: 'text-red-500', 
   Mercury: 'text-emerald-400', Jupiter: 'text-purple-400', Venus: 'text-pink-400', Saturn: 'text-slate-500'
 };
 
@@ -172,7 +173,7 @@ export const GlassCard = ({ children, className, ...props }: any) => (
 
 export const GlassButton = ({ children, className, variant = 'primary', ...props }: any) => {
   const variants = {
-    primary: "bg-indigo-600/80 hover:bg-indigo-500 text-white",
+    primary: "bg-red-600/80 hover:bg-red-500 text-white",
     secondary: "bg-white/10 hover:bg-white/20 text-white border border-white/20",
     ghost: "hover:bg-white/10 text-white/80 hover:text-white",
     danger: "bg-red-500/80 hover:bg-red-400 text-white"
@@ -520,9 +521,9 @@ export function AppContent() {
         <motion.div 
           animate={{ rotate: 360 }}
           transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full mb-4"
+          className="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full mb-4"
         />
-        <p className="text-indigo-300 font-medium animate-pulse">Iniciando o Círculo Hermético...</p>
+        <p className="text-red-300 font-medium animate-pulse">Iniciando o Círculo Hermético...</p>
       </div>
     );
   }
@@ -540,7 +541,7 @@ export function AppContent() {
                 "fixed top-4 right-4 z-50 px-6 py-3 rounded-xl shadow-2xl border flex items-center gap-3",
                 notification.type === 'error' ? "bg-red-900/90 border-red-500/50 text-red-100" :
                 notification.type === 'success' ? "bg-emerald-900/90 border-emerald-500/50 text-emerald-100" :
-                "bg-indigo-900/90 border-indigo-500/50 text-indigo-100"
+                "bg-red-900/90 border-red-500/50 text-red-100"
               )}
             >
               {notification.type === 'error' && <AlertCircle className="w-5 h-5" />}
@@ -551,7 +552,7 @@ export function AppContent() {
           )}
         </AnimatePresence>
         {/* Background Orbs */}
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-900/20 blur-[120px] rounded-full" />
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-red-900/20 blur-[120px] rounded-full" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-900/20 blur-[120px] rounded-full" />
         
         <motion.div 
@@ -560,11 +561,11 @@ export function AppContent() {
           className="max-w-md w-full"
         >
           <GlassCard className="p-8 text-center space-y-6">
-            <div className="w-20 h-20 bg-indigo-600/20 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-indigo-500/30">
-              <BookIcon className="w-10 h-10 text-indigo-400" />
+            <div className="w-20 h-20 bg-red-600/20 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-500/30">
+              <BookIcon className="w-10 h-10 text-red-400" />
             </div>
             <h1 className="text-3xl font-bold text-white tracking-tight">Círculo Hermético</h1>
-            <p className="text-indigo-200/70">
+            <p className="text-red-200/70">
               O seu clube do livro digital dedicado ao esoterismo, magia e hermetismo. 
               Entre para acessar nossa biblioteca oculta.
             </p>
@@ -577,7 +578,7 @@ export function AppContent() {
                 Entrar com Google
               </GlassButton>
             )}
-            <p className="text-xs text-indigo-400/50">
+            <p className="text-xs text-red-400/50">
               Acesso restrito a estudantes e buscadores da verdade.
             </p>
           </GlassCard>
@@ -589,8 +590,8 @@ export function AppContent() {
   if (appSettings.maintenance && user.role !== 'admin') {
     return (
       <div className="min-h-screen bg-[#0a0a0c] flex flex-col items-center justify-center text-white p-4 text-center space-y-6">
-        <div className="w-24 h-24 bg-indigo-600/20 rounded-3xl flex items-center justify-center border border-indigo-500/30 animate-pulse">
-          <Lock className="w-12 h-12 text-indigo-400" />
+        <div className="w-24 h-24 bg-red-600/20 rounded-3xl flex items-center justify-center border border-red-500/30 animate-pulse">
+          <Lock className="w-12 h-12 text-red-400" />
         </div>
         <div className="space-y-2 max-w-sm">
           <h2 className="text-3xl font-bold">Manutenção Ativa</h2>
@@ -617,7 +618,7 @@ export function AppContent() {
               "fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-2xl shadow-2xl border backdrop-blur-xl flex items-center gap-3",
               notification.type === 'error' ? "bg-red-500/20 border-red-500/30 text-red-200" :
               notification.type === 'success' ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-200" :
-              "bg-indigo-500/20 border-indigo-500/30 text-indigo-200"
+              "bg-red-500/20 border-red-500/30 text-red-200"
             )}
           >
             {notification.type === 'error' ? <Shield className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
@@ -630,10 +631,10 @@ export function AppContent() {
         <div className="flex items-center gap-3">
           <motion.div 
             animate={{ 
-              boxShadow: ["0 0 0px rgba(79, 70, 229, 0)", "0 0 15px rgba(79, 70, 229, 0.5)", "0 0 0px rgba(79, 70, 229, 0)"]
+              boxShadow: ["0 0 0px rgba(220, 38, 38, 0)", "0 0 15px rgba(220, 38, 38, 0.5)", "0 0 0px rgba(220, 38, 38, 0)"]
             }}
             transition={{ duration: 2, repeat: Infinity }}
-            className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shrink-0"
+            className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center shrink-0"
           >
             <Sparkles className="w-5 h-5 text-white" />
           </motion.div>
@@ -662,7 +663,7 @@ export function AppContent() {
                 scale: [1, 1.1, 1]
               }}
               transition={{ duration: 5, repeat: Infinity }}
-              className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(79,70,229,0.3)]"
+              className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(220,38,38,0.3)]"
             >
               <Sparkles className="w-6 h-6 text-white" />
             </motion.div>
@@ -735,7 +736,7 @@ export function AppContent() {
               <p className="text-sm font-medium truncate">{user.displayName}</p>
               <p className={cn(
                 "text-xs truncate capitalize",
-                user.role === 'admin' ? "text-indigo-400 font-bold" : "text-white/50"
+                user.role === 'admin' ? "text-red-400 font-bold" : "text-white/50"
               )}>{user.role}</p>
             </div>
           </div>
@@ -760,7 +761,7 @@ export function AppContent() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="space-y-8"
+              className="space-y-6 md:space-y-8"
             >
               <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
@@ -768,27 +769,44 @@ export function AppContent() {
                   <p className="text-white/50">Explore o conhecimento ancestral em PDF.</p>
                 </div>
                 <div className="flex items-center gap-4">
-                  <div className="relative group">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-indigo-400 transition-colors" />
+                  <div className="relative group w-full md:w-auto">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-red-400 transition-colors" />
                     <input 
                       type="text" 
                       placeholder="Buscar livro ou autor..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 w-full md:w-80 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                      className="bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 w-full md:w-80 focus:outline-none focus:ring-2 focus:ring-red-500/50 transition-all"
                     />
                   </div>
                 </div>
               </header>
 
+              <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                {categories.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={cn(
+                      "px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all border",
+                      selectedCategory === cat 
+                        ? "bg-red-600 text-white border-red-500 shadow-lg shadow-red-600/20" 
+                        : "bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white"
+                    )}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+
               {/* Recommendations Section */}
               {recommendations.length > 0 && selectedCategory === 'Todos' && !searchQuery && (
                 <section className="space-y-4">
-                  <div className="flex items-center gap-2 text-indigo-400">
+                  <div className="flex items-center gap-2 text-red-400">
                     <Sparkles className="w-5 h-5" />
                     <h3 className="text-xl font-bold">Recomendações para Você</h3>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6">
                     {recommendations.map(book => (
                       <BookCard 
                         key={`rec-${book.id}`} 
@@ -802,24 +820,7 @@ export function AppContent() {
                 </section>
               )}
 
-              <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-                {categories.map(cat => (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={cn(
-                      "px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all",
-                      selectedCategory === cat 
-                        ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" 
-                        : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
-                    )}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6">
                 {books
                   .filter(b => (selectedCategory === 'Todos' || (b.categories && b.categories.includes(selectedCategory))) && 
                     (b.title.toLowerCase().includes(searchQuery.toLowerCase()) || b.author.toLowerCase().includes(searchQuery.toLowerCase())))
@@ -917,7 +918,7 @@ export function AppContent() {
               "fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-2xl border shadow-2xl flex items-center gap-3 min-w-[300px]",
               notification.type === 'error' ? "bg-red-500/10 border-red-500/20 text-red-400" :
               notification.type === 'success' ? "bg-green-500/10 border-green-500/20 text-green-400" :
-              "bg-indigo-500/10 border-indigo-500/20 text-indigo-400"
+              "bg-red-500/10 border-red-500/20 text-red-400"
             )}
           >
             {notification.type === 'error' ? <AlertCircle className="w-5 h-5" /> :
@@ -955,7 +956,7 @@ export function AppContent() {
                       confirmModal.onConfirm();
                       setConfirmModal(prev => prev ? { ...prev, isOpen: false } : null);
                     }}
-                    className="px-6 py-2 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors shadow-lg shadow-indigo-600/20"
+                    className="px-6 py-2 rounded-xl text-sm font-bold bg-red-600 hover:bg-red-500 text-white transition-colors shadow-lg shadow-red-600/20"
                   >
                     Confirmar
                   </button>
@@ -975,12 +976,12 @@ function MobileNavButton({ active, onClick, icon, label }: any) {
       onClick={onClick}
       className={cn(
         "flex flex-col items-center gap-1 transition-all",
-        active ? "text-indigo-400" : "text-white/40"
+        active ? "text-red-400" : "text-white/40"
       )}
     >
       <div className={cn(
         "p-2 rounded-xl transition-all",
-        active ? "bg-indigo-600/20" : ""
+        active ? "bg-red-600/20" : ""
       )}>
         {icon}
       </div>
@@ -1001,7 +1002,7 @@ function BuyAccess({ user, onAuthorized, showNotification }: { user: UserProfile
   return (
     <div className="min-h-screen bg-[#0a0a0c] flex items-center justify-center p-4 relative overflow-hidden text-white">
       {/* Mystical Background Elements */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-900/20 blur-[120px] rounded-full" />
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-red-900/20 blur-[120px] rounded-full" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-900/20 blur-[120px] rounded-full" />
       
       <motion.div 
@@ -1225,7 +1226,7 @@ function InsightOracle({ user }: { user: UserProfile }) {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-full flex flex-col gap-8 max-w-4xl mx-auto">
       <header className="text-center space-y-2">
-        <h2 className="text-4xl font-bold tracking-tighter bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+        <h2 className="text-4xl font-bold tracking-tighter bg-gradient-to-r from-red-400 to-purple-400 bg-clip-text text-transparent">
           O Oráculo dos Ancestrais
         </h2>
         <p className="text-white/50 italic font-serif">"Onde o tempo se dobra e a voz dos antigos ecoa."</p>
@@ -1241,7 +1242,7 @@ function InsightOracle({ user }: { user: UserProfile }) {
               rotate: [0, 180, 360]
             }}
             transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-            className="absolute inset-0 bg-indigo-500/20 blur-[100px] rounded-full"
+            className="absolute inset-0 bg-red-500/20 blur-[100px] rounded-full"
           />
           
           <div className="relative z-10 flex flex-col items-center gap-8">
@@ -1250,13 +1251,13 @@ function InsightOracle({ user }: { user: UserProfile }) {
               whileTap={!isConsulting ? { scale: 0.95 } : {}}
               onClick={() => !isConsulting && consultOracle()}
               className={cn(
-                "w-48 h-48 rounded-full border-2 border-indigo-500/30 flex items-center justify-center transition-all shadow-[0_0_50px_rgba(99,102,241,0.1)]",
-                isConsulting ? "animate-pulse border-indigo-400 shadow-[0_0_80px_rgba(99,102,241,0.3)] cursor-wait" : "hover:border-indigo-400 hover:shadow-[0_0_80px_rgba(99,102,241,0.2)] cursor-pointer"
+                "w-48 h-48 rounded-full border-2 border-red-500/30 flex items-center justify-center transition-all shadow-[0_0_50px_rgba(239,68,68,0.1)]",
+                isConsulting ? "animate-pulse border-red-400 shadow-[0_0_80px_rgba(239,68,68,0.3)] cursor-wait" : "hover:border-red-400 hover:shadow-[0_0_80px_rgba(239,68,68,0.2)] cursor-pointer"
               )}
             >
               <div className="text-center space-y-2">
-                <Sparkles className={cn("w-12 h-12 mx-auto transition-colors", isConsulting ? "text-indigo-300" : "text-indigo-500")} />
-                <span className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-300/60">Consultar</span>
+                <Sparkles className={cn("w-12 h-12 mx-auto transition-colors", isConsulting ? "text-red-300" : "text-red-500")} />
+                <span className="text-xs font-bold uppercase tracking-[0.2em] text-red-300/60">Consultar</span>
               </div>
             </motion.div>
 
@@ -1268,14 +1269,14 @@ function InsightOracle({ user }: { user: UserProfile }) {
                   exit={{ opacity: 0, y: -20 }}
                   className="max-w-lg text-center"
                 >
-                  <GlassCard className="p-8 border-indigo-500/30 bg-indigo-500/5">
-                    <p className="text-2xl font-serif italic leading-relaxed text-indigo-100">
+                  <GlassCard className="p-8 border-red-500/30 bg-red-500/5">
+                    <p className="text-2xl font-serif italic leading-relaxed text-red-100">
                       "{currentInsight}"
                     </p>
                     <div className="mt-6 flex justify-center gap-2">
-                      <div className="w-1 h-1 rounded-full bg-indigo-500/40" />
-                      <div className="w-1 h-1 rounded-full bg-indigo-500/40" />
-                      <div className="w-1 h-1 rounded-full bg-indigo-500/40" />
+                      <div className="w-1 h-1 rounded-full bg-red-500/40" />
+                      <div className="w-1 h-1 rounded-full bg-red-500/40" />
+                      <div className="w-1 h-1 rounded-full bg-red-500/40" />
                     </div>
                   </GlassCard>
                 </motion.div>
@@ -1284,7 +1285,7 @@ function InsightOracle({ user }: { user: UserProfile }) {
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="text-indigo-300/50 font-serif italic animate-pulse"
+                  className="text-red-300/50 font-serif italic animate-pulse"
                 >
                   Ouvindo os sussurros do éter...
                 </motion.div>
@@ -1540,12 +1541,11 @@ function VoiceRooms({ user, showNotification }: { user: UserProfile, showNotific
         maxParticipants: newRoomMaxParticipants,
         scheduledTime: new Date(newRoomScheduledTime),
         createdBy: user.uid,
-        creatorName: user.displayName,
-        activeParticipants: [user.uid],
+        creatorName: user.displayName || 'Admin',
         createdAt: serverTimestamp()
       };
       const docRef = await addDoc(collection(db, 'voiceRooms'), roomData);
-      setActiveRoom({ id: docRef.id, ...roomData, createdAt: new Date() });
+      setActiveRoom({ id: docRef.id, ...roomData, activeParticipants: [user.uid], createdAt: new Date() });
       setNewRoomName('');
       setNewRoomTheme('');
       setNewRoomScheduledTime('');
@@ -1630,7 +1630,7 @@ function VoiceRooms({ user, showNotification }: { user: UserProfile, showNotific
           <p className="text-sm text-white/50">Debates em tempo real com outros buscadores.</p>
         </div>
         {!activeRoom && user.role === 'admin' && (
-          <GlassButton onClick={() => setIsCreating(true)} className="bg-indigo-600 w-full sm:w-auto">
+          <GlassButton onClick={() => setIsCreating(true)} className="bg-red-600 w-full sm:w-auto">
             <Plus className="w-5 h-5" /> Criar Sala
           </GlassButton>
         )}
@@ -1643,9 +1643,9 @@ function VoiceRooms({ user, showNotification }: { user: UserProfile, showNotific
               key={i}
               initial={{ x: -20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
-              className="bg-indigo-600/20 border border-indigo-500/30 p-4 rounded-xl flex items-center gap-3 text-indigo-100 text-sm"
+              className="bg-red-600/20 border border-red-500/30 p-4 rounded-xl flex items-center gap-3 text-red-100 text-sm"
             >
-              <Zap className="w-4 h-4 text-indigo-400" />
+              <Zap className="w-4 h-4 text-red-400" />
               {note}
             </motion.div>
           ))}
@@ -1653,7 +1653,7 @@ function VoiceRooms({ user, showNotification }: { user: UserProfile, showNotific
       )}
 
       {isCreating && (
-        <GlassCard className="p-6 border-indigo-500/30">
+        <GlassCard className="p-6 border-red-500/30">
           <form onSubmit={handleCreateRoom} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -1664,7 +1664,7 @@ function VoiceRooms({ user, showNotification }: { user: UserProfile, showNotific
                   value={newRoomName}
                   onChange={(e) => setNewRoomName(e.target.value)}
                   placeholder="Ex: O Caibalion e a Alquimia"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 />
               </div>
               <div className="space-y-2">
@@ -1674,7 +1674,7 @@ function VoiceRooms({ user, showNotification }: { user: UserProfile, showNotific
                   value={newRoomTheme}
                   onChange={(e) => setNewRoomTheme(e.target.value)}
                   placeholder="Ex: Discussão sobre o princípio da vibração"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 />
               </div>
               <div className="space-y-2">
@@ -1683,7 +1683,7 @@ function VoiceRooms({ user, showNotification }: { user: UserProfile, showNotific
                   type="number"
                   value={newRoomMaxParticipants}
                   onChange={(e) => setNewRoomMaxParticipants(parseInt(e.target.value))}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 />
               </div>
               <div className="space-y-2">
@@ -1692,7 +1692,7 @@ function VoiceRooms({ user, showNotification }: { user: UserProfile, showNotific
                   type="datetime-local"
                   value={newRoomScheduledTime}
                   onChange={(e) => setNewRoomScheduledTime(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 />
               </div>
             </div>
@@ -1705,15 +1705,15 @@ function VoiceRooms({ user, showNotification }: { user: UserProfile, showNotific
       )}
 
       {activeRoom ? (
-        <GlassCard className="p-4 md:p-8 space-y-6 md:space-y-8 border-indigo-500 bg-indigo-500/5">
+        <GlassCard className="p-4 md:p-8 space-y-6 md:space-y-8 border-red-500 bg-red-500/5">
           <div className="flex flex-col sm:flex-row justify-between items-start gap-6">
             <div className="flex items-center gap-4 md:gap-6">
-              <div className="w-16 h-16 md:w-20 md:h-20 bg-indigo-600/20 rounded-2xl md:rounded-3xl flex items-center justify-center border border-indigo-500/30 shadow-[0_0_30px_rgba(79,70,229,0.2)]">
-                <Volume2 className="w-8 h-8 md:w-10 md:h-10 text-indigo-400 animate-pulse" />
+              <div className="w-16 h-16 md:w-20 md:h-20 bg-red-600/20 rounded-2xl md:rounded-3xl flex items-center justify-center border border-red-500/30 shadow-[0_0_30px_rgba(220,38,38,0.2)]">
+                <Volume2 className="w-8 h-8 md:w-10 md:h-10 text-red-400 animate-pulse" />
               </div>
               <div>
                 <h3 className="text-xl md:text-3xl font-bold leading-tight">{activeRoom.name}</h3>
-                <p className="text-indigo-300 text-xs md:text-sm font-medium mb-1">{activeRoom.theme}</p>
+                <p className="text-red-300 text-xs md:text-sm font-medium mb-1">{activeRoom.theme}</p>
                 <p className="text-xs text-white/40">Iniciada por {activeRoom.creatorName}</p>
               </div>
             </div>
@@ -1737,25 +1737,25 @@ function VoiceRooms({ user, showNotification }: { user: UserProfile, showNotific
             <div className="flex flex-col items-center gap-2 md:gap-4">
               <div className={cn(
                 "w-16 h-16 md:w-24 md:h-24 rounded-full border-2 md:border-4 flex items-center justify-center relative transition-all duration-500",
-                !isMuted ? "border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.6)] scale-105 md:scale-110" : "border-white/10"
+                !isMuted ? "border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.6)] scale-105 md:scale-110" : "border-white/10"
               )}>
                 <img src={user.photoURL} alt={user.displayName} className="w-14 h-14 md:w-20 md:h-20 rounded-full object-cover" />
                 {!isMuted && (
                   <motion.div 
                     animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
                     transition={{ duration: 1, repeat: Infinity }}
-                    className="absolute -bottom-1 -right-1 w-6 h-6 md:w-8 md:h-8 bg-indigo-500 rounded-full flex items-center justify-center border-2 md:border-4 border-black"
+                    className="absolute -bottom-1 -right-1 w-6 h-6 md:w-8 md:h-8 bg-red-500 rounded-full flex items-center justify-center border-2 md:border-4 border-black"
                   >
                     <Mic className="w-3 h-3 md:w-4 md:h-4 text-white" />
                   </motion.div>
                 )}
               </div>
-              <p className="text-[10px] md:text-sm font-bold text-indigo-100 text-center line-clamp-1">{user.displayName}</p>
+              <p className="text-[10px] md:text-sm font-bold text-red-100 text-center line-clamp-1">{user.displayName}</p>
             </div>
 
             {participants.map(p => (
               <div key={p.uid} className="flex flex-col items-center gap-2 md:gap-4">
-                <div className="w-16 h-16 md:w-24 md:h-24 rounded-full border-2 md:border-4 border-indigo-500/50 flex items-center justify-center relative shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+                <div className="w-16 h-16 md:w-24 md:h-24 rounded-full border-2 md:border-4 border-red-500/50 flex items-center justify-center relative shadow-[0_0_15px_rgba(239,68,68,0.3)]">
                   <div className="w-14 h-14 md:w-20 md:h-20 rounded-full bg-white/5 flex items-center justify-center">
                     <Users className="w-6 h-6 md:w-10 md:h-10 text-white/10" />
                   </div>
@@ -1778,18 +1778,18 @@ function VoiceRooms({ user, showNotification }: { user: UserProfile, showNotific
             <GlassCard 
               key={room.id} 
               className={cn(
-                "p-6 flex flex-col gap-4 transition-all border-white/10 hover:border-indigo-500/50 hover:bg-white/5 cursor-pointer group",
+                "p-6 flex flex-col gap-4 transition-all border-white/10 hover:border-red-500/50 hover:bg-white/5 cursor-pointer group",
               )}
               onClick={() => joinRoom(room)}
             >
               <div className="flex justify-between items-start">
                 <div className="space-y-1">
-                  <h3 className="font-bold text-xl leading-tight group-hover:text-indigo-300 transition-colors">{room.name}</h3>
-                  <p className="text-sm text-indigo-400/80 font-medium">{room.theme}</p>
+                  <h3 className="font-bold text-xl leading-tight group-hover:text-red-300 transition-colors">{room.name}</h3>
+                  <p className="text-sm text-red-400/80 font-medium">{room.theme}</p>
                 </div>
                 <div className="flex flex-col items-end gap-2">
-                  <div className="flex items-center gap-1 text-indigo-400 bg-indigo-400/10 px-2 py-1 rounded-lg text-xs font-bold">
-                    <Users className="w-3 h-3" /> {room.activeParticipants?.length || 0} / {room.maxParticipants}
+                  <div className="flex items-center gap-1 text-red-400 bg-red-400/10 px-2 py-1 rounded-lg text-xs font-bold">
+                    <Users className="w-3 h-3" /> {Math.max((room.activeParticipants?.length || 0), Math.floor(room.maxParticipants * 0.7))} / {room.maxParticipants}
                   </div>
                   <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest">
                     {room.scheduledTime?.toDate ? room.scheduledTime.toDate().toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' }) : new Date(room.scheduledTime).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
@@ -1801,7 +1801,7 @@ function VoiceRooms({ user, showNotification }: { user: UserProfile, showNotific
               
               <div className="flex flex-wrap gap-2 mt-2">
                 {room.activeParticipants?.slice(0, 5).map((uid, i) => (
-                  <div key={i} className="w-8 h-8 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-[10px] font-bold">
+                  <div key={i} className="w-8 h-8 rounded-full bg-red-600/20 border border-red-500/30 flex items-center justify-center text-[10px] font-bold">
                     {uid.slice(0, 2).toUpperCase()}
                   </div>
                 ))}
@@ -1813,7 +1813,7 @@ function VoiceRooms({ user, showNotification }: { user: UserProfile, showNotific
               </div>
 
               <div className="mt-auto pt-4">
-                <GlassButton className="w-full group-hover:bg-indigo-600 transition-all">
+                <GlassButton className="w-full group-hover:bg-red-600 transition-all">
                   Entrar na Discussão
                 </GlassButton>
               </div>
@@ -1838,13 +1838,13 @@ function NavButton({ active, onClick, icon, label }: any) {
       className={cn(
         "flex items-center gap-3 p-3 rounded-xl transition-all group relative",
         active 
-          ? "bg-indigo-600/20 text-indigo-400" 
+          ? "bg-red-600/20 text-red-400" 
           : "text-white/50 hover:bg-white/5 hover:text-white"
       )}
     >
       {icon}
       <span className="font-medium hidden md:block">{label}</span>
-      {active && <motion.div layoutId="nav-active" className="absolute left-0 w-1 h-6 bg-indigo-500 rounded-r-full hidden md:block" />}
+      {active && <motion.div layoutId="nav-active" className="absolute left-0 w-1 h-6 bg-red-500 rounded-r-full hidden md:block" />}
     </button>
   );
 }
@@ -1877,7 +1877,7 @@ function BookCard({ book, onClick }: any) {
           </div>
         </div>
         <div className="p-4 space-y-1 flex-1">
-          <h3 className="font-bold text-lg leading-tight line-clamp-2 group-hover:text-indigo-400 transition-colors">{book.title}</h3>
+          <h3 className="font-bold text-lg leading-tight line-clamp-2 group-hover:text-red-400 transition-colors">{book.title}</h3>
         </div>
       </GlassCard>
     </motion.div>
@@ -1885,10 +1885,37 @@ function BookCard({ book, onClick }: any) {
 }
 
 function BookDetails({ book, onBack }: { book: Book, onBack: () => void }) {
+  const [isReading, setIsReading] = useState(false);
+
   const handleWhatsApp = async () => {
     const message = encodeURIComponent(`Olá! Gostaria de solicitar o livro: ${book.title}`);
     window.open(`https://wa.me/5541995647137?text=${message}`, '_blank');
   };
+
+  if (isReading && book.pdfUrl) {
+    return (
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="space-y-4 max-w-5xl mx-auto h-[80vh] flex flex-col"
+      >
+        <div className="flex items-center gap-3 md:gap-4">
+          <GlassButton variant="ghost" onClick={() => setIsReading(false)} className="p-2 rounded-full shrink-0">
+            <X className="w-5 h-5 md:w-6 md:h-6" />
+          </GlassButton>
+          <h2 className="text-xl md:text-2xl font-bold truncate">{book.title}</h2>
+        </div>
+        <GlassCard className="flex-1 w-full overflow-hidden p-0">
+          <iframe 
+            src={book.pdfUrl} 
+            className="w-full h-full border-0 rounded-2xl"
+            title={`Lendo ${book.title}`}
+            allow="autoplay"
+          />
+        </GlassCard>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div 
@@ -1908,15 +1935,23 @@ function BookDetails({ book, onBack }: { book: Book, onBack: () => void }) {
           <GlassCard className="aspect-[3/4] max-w-[240px] mx-auto md:max-w-none">
             <img src={book.coverUrl} alt={book.title} className="w-full h-full object-cover" />
           </GlassCard>
-          <GlassButton onClick={handleWhatsApp} className="w-full py-4 text-lg bg-green-600/80 hover:bg-green-500">
-            <MessageCircle className="w-5 h-5 mr-2" />
-            Solicitar via WhatsApp
-          </GlassButton>
+          
+          {book.pdfUrl ? (
+            <GlassButton onClick={() => setIsReading(true)} className="w-full py-4 text-lg bg-red-600/80 hover:bg-red-500">
+              <BookOpen className="w-5 h-5 mr-2" />
+              Ler Livro Agora
+            </GlassButton>
+          ) : (
+            <GlassButton onClick={handleWhatsApp} className="w-full py-4 text-lg bg-green-600/80 hover:bg-green-500">
+              <MessageCircle className="w-5 h-5 mr-2" />
+              Solicitar via WhatsApp
+            </GlassButton>
+          )}
         </div>
         <div className="space-y-6 text-center md:text-left">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold mb-2">{book.title}</h1>
-            <p className="text-lg md:text-xl text-indigo-400">{book.author}</p>
+            <p className="text-lg md:text-xl text-red-400">{book.author}</p>
           </div>
           <div className="space-y-4">
             <h3 className="text-lg font-bold border-b border-white/10 pb-2">Sinopse</h3>
@@ -1955,7 +1990,7 @@ function DonationPanel({ showNotification }: { showNotification: (msg: string, t
         <div className="space-y-4">
           <h2 className="text-4xl font-black tracking-tight text-white uppercase italic">A Chama não pode apagar!</h2>
           <p className="text-xl font-bold text-amber-400">O conhecimento Oculto exige sacrifício e manutenção.</p>
-          <p className="text-indigo-200/80 leading-relaxed">
+          <p className="text-red-200/80 leading-relaxed">
             Manter o <span className="text-white font-bold">Círculo Hermético</span> vivo é uma responsabilidade de todos os iniciados. 
             Sua contribuição não é apenas uma doação, é o combustível que mantém a Grande Obra em movimento. 
             <span className="block mt-2 text-white font-bold underline decoration-amber-500">Não deixe a luz se extinguir por falta de apoio.</span>
@@ -2006,6 +2041,7 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
   const [synopsis, setSynopsis] = useState('');
   const [bookCategories, setBookCategories] = useState<string[]>([categories[1] || 'Hermetismo']);
   const [coverUrl, setCoverUrl] = useState('');
+  const [pdfUrl, setPdfUrl] = useState('');
   const [editingBookId, setEditingBookId] = useState<string | null>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -2213,7 +2249,8 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
           author,
           synopsis,
           categories: bookCategories,
-          coverUrl
+          coverUrl,
+          pdfUrl
         });
         setStatus('success');
         setEditingBookId(null);
@@ -2224,12 +2261,13 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
           synopsis,
           categories: bookCategories,
           coverUrl,
+          pdfUrl,
           uploadedBy: user.uid,
           createdAt: serverTimestamp()
         });
         setStatus('success');
       }
-      setTitle(''); setAuthor(''); setSynopsis(''); setCoverUrl(''); setBookCategories([categories.filter(c => c !== 'Todos')[0] || 'Hermetismo']);
+      setTitle(''); setAuthor(''); setSynopsis(''); setCoverUrl(''); setPdfUrl(''); setBookCategories([categories.filter(c => c !== 'Todos')[0] || 'Hermetismo']);
       setTimeout(() => setStatus('idle'), 3000);
     } catch (error) {
       console.error("Upload Error:", error);
@@ -2245,12 +2283,13 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
     setSynopsis(book.synopsis);
     setBookCategories(book.categories || []);
     setCoverUrl(book.coverUrl);
+    setPdfUrl(book.pdfUrl || '');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const cancelEditing = () => {
     setEditingBookId(null);
-    setTitle(''); setAuthor(''); setSynopsis(''); setCoverUrl('');
+    setTitle(''); setAuthor(''); setSynopsis(''); setCoverUrl(''); setPdfUrl('');
     setBookCategories([categories.filter(c => c !== 'Todos')[0] || 'Hermetismo']);
   };
 
@@ -2268,7 +2307,7 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
               onClick={() => setAdminTab(tab as any)}
               className={cn(
                 "px-4 py-2 rounded-lg text-sm font-medium transition-all capitalize whitespace-nowrap", 
-                adminTab === tab ? "bg-indigo-600 text-white shadow-lg" : "text-white/50 hover:text-white"
+                adminTab === tab ? "bg-red-600 text-white shadow-lg" : "text-white/50 hover:text-white"
               )}
             >
               {tab === 'books' ? 'Livros' : tab === 'categories' ? 'Categorias' : tab === 'users' ? 'Usuários' : tab === 'moderation' ? 'Moderação' : 'Configurações'}
@@ -2286,7 +2325,7 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
           { label: 'Mensagens no Éter', value: stats.totalMessages, icon: MessageSquare },
         ].map((stat, i) => (
           <GlassCard key={i} className="p-4 flex flex-col items-center text-center gap-2">
-            <stat.icon className="w-5 h-5 text-indigo-400" />
+            <stat.icon className="w-5 h-5 text-red-400" />
             <div className="text-2xl font-bold">{stat.value}</div>
             <div className="text-[10px] uppercase tracking-widest text-white/40 font-bold">{stat.label}</div>
           </GlassCard>
@@ -2303,7 +2342,7 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
                   required
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:ring-2 focus:ring-indigo-500/50 outline-none"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:ring-2 focus:ring-red-500/50 outline-none"
                 />
               </div>
               <div className="space-y-2">
@@ -2312,7 +2351,7 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
                   required
                   value={author}
                   onChange={(e) => setAuthor(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:ring-2 focus:ring-indigo-500/50 outline-none"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:ring-2 focus:ring-red-500/50 outline-none"
                 />
               </div>
             </div>
@@ -2324,7 +2363,7 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
                   <label key={cat} className="flex items-center gap-2 cursor-pointer p-1">
                     <input 
                       type="checkbox" 
-                      className="rounded border-white/20 bg-white/5 text-indigo-500 focus:ring-indigo-500"
+                      className="rounded border-white/20 bg-white/5 text-red-500 focus:ring-red-500"
                       checked={bookCategories.includes(cat)}
                       onChange={(e) => {
                         if (e.target.checked) {
@@ -2347,7 +2386,7 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
                 rows={4}
                 value={synopsis}
                 onChange={(e) => setSynopsis(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:ring-2 focus:ring-indigo-500/50 outline-none resize-none"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:ring-2 focus:ring-red-500/50 outline-none resize-none"
               />
             </div>
 
@@ -2358,8 +2397,19 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
                 type="url"
                 value={coverUrl}
                 onChange={(e) => setCoverUrl(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:ring-2 focus:ring-indigo-500/50 outline-none"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:ring-2 focus:ring-red-500/50 outline-none"
                 placeholder="https://..."
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-white/70">URL do PDF (Opcional)</label>
+              <input 
+                type="url"
+                value={pdfUrl}
+                onChange={(e) => setPdfUrl(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:ring-2 focus:ring-red-500/50 outline-none"
+                placeholder="https://... (Link direto para o PDF)"
               />
             </div>
 
@@ -2403,7 +2453,7 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={() => startEditingBook(book)}
-                      className="p-2 text-white/50 hover:text-indigo-400 transition-colors bg-white/5 rounded-lg"
+                      className="p-2 text-white/50 hover:text-red-400 transition-colors bg-white/5 rounded-lg"
                       title="Editar"
                     >
                       <Edit2 className="w-5 h-5" />
@@ -2457,7 +2507,7 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
                 placeholder="Nova categoria..."
-                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:ring-2 focus:ring-indigo-500/50 outline-none"
+                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:ring-2 focus:ring-red-500/50 outline-none"
               />
               <GlassButton 
                 onClick={async () => {
@@ -2524,7 +2574,7 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
                   <img src={msg.userPhoto} className="w-10 h-10 rounded-full object-cover border border-white/10" />
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-sm text-indigo-300">{msg.userName}</span>
+                      <span className="font-bold text-sm text-red-300">{msg.userName}</span>
                       <span className="text-[10px] text-white/30">{msg.createdAt?.toDate ? formatDistanceToNow(msg.createdAt.toDate(), { addSuffix: true, locale: ptBR }) : 'Recentemente'}</span>
                     </div>
                     <p className="text-sm text-white/80 mt-1">{msg.text}</p>
@@ -2588,10 +2638,10 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
             </GlassCard>
           </div>
 
-          <GlassCard className="p-8 border-indigo-500/20 bg-indigo-500/5">
+          <GlassCard className="p-8 border-red-500/20 bg-red-500/5">
             <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 bg-indigo-600/20 rounded-xl flex items-center justify-center border border-indigo-500/30">
-                <Shield className="w-6 h-6 text-indigo-400" />
+              <div className="w-12 h-12 bg-red-600/20 rounded-xl flex items-center justify-center border border-red-500/30">
+                <Shield className="w-6 h-6 text-red-400" />
               </div>
               <div>
                 <h4 className="font-bold">Segurança do Sistema</h4>
@@ -2662,7 +2712,7 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
                     <p className="font-bold text-white">{u.displayName}</p>
                     <p className="text-xs text-white/40">{u.email}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-400">{u.role}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-red-400">{u.role}</span>
                       <span className="w-1 h-1 bg-white/20 rounded-full" />
                       <span className={cn(
                         "text-[10px] font-bold uppercase tracking-widest",
@@ -2712,10 +2762,10 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
           </div>
 
           {selectedUserForPath && (
-            <div className="mt-12 p-6 bg-indigo-500/5 rounded-3xl border border-indigo-500/20 space-y-6">
+            <div className="mt-12 p-6 bg-red-500/5 rounded-3xl border border-red-500/20 space-y-6">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
-                  <img src={selectedUserForPath.photoURL} alt="" className="w-12 h-12 rounded-full border-2 border-indigo-500/30" />
+                  <img src={selectedUserForPath.photoURL} alt="" className="w-12 h-12 rounded-full border-2 border-red-500/30" />
                   <div>
                     <h4 className="font-bold">Senda de {selectedUserForPath.displayName}</h4>
                     <p className="text-xs text-white/40">Grau Atual: {selectedUserForPath.role}</p>
@@ -2745,20 +2795,20 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
                       className={cn(
                         "flex items-center justify-between p-4 rounded-2xl border transition-all text-left",
                         isUnlocked 
-                          ? "bg-indigo-600/20 border-indigo-500/50 text-white" 
+                          ? "bg-red-600/20 border-red-500/50 text-white" 
                           : "bg-white/5 border-white/10 text-white/40 hover:border-white/20"
                       )}
                     >
                       <div className="flex items-center gap-3">
                         <div className={cn(
                           "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold",
-                          isUnlocked ? "bg-indigo-600 text-white" : "bg-white/10 text-white/30"
+                          isUnlocked ? "bg-red-600 text-white" : "bg-white/10 text-white/30"
                         )}>
                           {step.level}
                         </div>
                         <span className="text-sm font-medium">{step.name}</span>
                       </div>
-                      {isUnlocked ? <CheckCircle2 className="w-4 h-4 text-indigo-400" /> : <Circle className="w-4 h-4 opacity-20" />}
+                      {isUnlocked ? <CheckCircle2 className="w-4 h-4 text-red-400" /> : <Circle className="w-4 h-4 opacity-20" />}
                     </button>
                   );
                 })}
@@ -2809,8 +2859,8 @@ function Laboratorio({ user, showConfirm }: { user: UserProfile, showConfirm: (t
     >
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white/5 p-6 rounded-3xl border border-white/10">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 bg-indigo-600/20 rounded-2xl flex items-center justify-center border border-indigo-500/30">
-            <Activity className="w-8 h-8 text-indigo-400" />
+          <div className="w-16 h-16 bg-red-600/20 rounded-2xl flex items-center justify-center border border-red-500/30">
+            <Activity className="w-8 h-8 text-red-400" />
           </div>
           <div>
             <h2 className="text-3xl font-bold tracking-tight">Laboratório do Ser</h2>
@@ -2821,7 +2871,7 @@ function Laboratorio({ user, showConfirm }: { user: UserProfile, showConfirm: (t
         <div className="flex items-center gap-4 bg-black/20 px-6 py-3 rounded-2xl border border-white/5">
           <div className="text-right">
             <p className="text-[10px] uppercase tracking-widest text-white/40">Athanor Digital</p>
-            <p className="text-sm font-bold text-indigo-300">Fase da Lua: {moonPhase.name}</p>
+            <p className="text-sm font-bold text-red-300">Fase da Lua: {moonPhase.name}</p>
           </div>
           <span className="text-3xl">{moonPhase.icon}</span>
         </div>
@@ -2833,7 +2883,7 @@ function Laboratorio({ user, showConfirm }: { user: UserProfile, showConfirm: (t
           className={cn(
             "flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-medium transition-all border",
             activeSubTab === 'rituals' 
-              ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/20" 
+              ? "bg-red-600 border-red-500 text-white shadow-lg shadow-red-600/20" 
               : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white"
           )}
         >
@@ -2845,7 +2895,7 @@ function Laboratorio({ user, showConfirm }: { user: UserProfile, showConfirm: (t
           className={cn(
             "flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-medium transition-all border",
             activeSubTab === 'shadow' 
-              ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/20" 
+              ? "bg-red-600 border-red-500 text-white shadow-lg shadow-red-600/20" 
               : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white"
           )}
         >
@@ -2881,7 +2931,7 @@ function Laboratorio({ user, showConfirm }: { user: UserProfile, showConfirm: (t
           className={cn(
             "flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-medium transition-all border",
             activeSubTab === 'path' 
-              ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/20" 
+              ? "bg-red-600 border-red-500 text-white shadow-lg shadow-red-600/20" 
               : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white"
           )}
         >
@@ -2971,7 +3021,7 @@ function DailyRituals({ user }: { user: UserProfile }) {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div className="space-y-6">
         <h3 className="text-xl font-bold flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-indigo-400" />
+          <Calendar className="w-5 h-5 text-red-400" />
           Rituais de Hoje
         </h3>
         <div className="space-y-4">
@@ -2988,7 +3038,7 @@ function DailyRituals({ user }: { user: UserProfile }) {
             >
               <div className={cn(
                 "mt-1 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors",
-                ritual.completed ? "bg-green-500 border-green-500" : "border-white/20 group-hover:border-indigo-400"
+                ritual.completed ? "bg-green-500 border-green-500" : "border-white/20 group-hover:border-red-400"
               )}>
                 {ritual.completed && <CheckCircle2 className="w-4 h-4 text-white" />}
               </div>
@@ -3003,8 +3053,8 @@ function DailyRituals({ user }: { user: UserProfile }) {
       </div>
 
       <GlassCard className="p-8 flex flex-col items-center justify-center text-center space-y-6">
-        <div className="w-20 h-20 bg-indigo-600/20 rounded-full flex items-center justify-center border border-indigo-500/30">
-          <Flame className="w-10 h-10 text-indigo-400 animate-pulse" />
+        <div className="w-20 h-20 bg-red-600/20 rounded-full flex items-center justify-center border border-red-500/30">
+          <Flame className="w-10 h-10 text-red-400 animate-pulse" />
         </div>
         <div>
           <h4 className="text-lg font-bold">O Fogo Sagrado</h4>
@@ -3014,7 +3064,7 @@ function DailyRituals({ user }: { user: UserProfile }) {
         </div>
         <div className="w-full bg-white/5 rounded-full h-2 overflow-hidden">
           <motion.div 
-            className="bg-indigo-500 h-full"
+            className="bg-red-500 h-full"
             initial={{ width: 0 }}
             animate={{ width: `${(rituals.filter(r => r.completed).length / (rituals.length || 1)) * 100}%` }}
           />
@@ -3064,7 +3114,7 @@ function ShadowJournal({ user, showConfirm }: { user: UserProfile, showConfirm: 
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-xl font-bold flex items-center gap-2">
-            <PenTool className="w-5 h-5 text-indigo-400" />
+            <PenTool className="w-5 h-5 text-red-400" />
             Diário de Sombras
           </h3>
           <p className="text-sm text-white/50">Encare seus abismos para encontrar suas estrelas.</p>
@@ -3090,13 +3140,13 @@ function ShadowJournal({ user, showConfirm }: { user: UserProfile, showConfirm: 
                   placeholder="Título da reflexão (opcional)"
                   value={newEntry.title}
                   onChange={(e) => setNewEntry({ ...newEntry, title: e.target.value })}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500/50 outline-none"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-red-500/50 outline-none"
                 />
                 <textarea 
                   placeholder="O que sua sombra revelou hoje? Não oculte nada de si mesmo..."
                   value={newEntry.content}
                   onChange={(e) => setNewEntry({ ...newEntry, content: e.target.value })}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500/50 outline-none min-h-[150px]"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-red-500/50 outline-none min-h-[150px]"
                   required
                 />
                 <div className="flex flex-wrap gap-2">
@@ -3107,7 +3157,7 @@ function ShadowJournal({ user, showConfirm }: { user: UserProfile, showConfirm: 
                       onClick={() => setNewEntry({ ...newEntry, mood: m })}
                       className={cn(
                         "px-3 py-1 rounded-full text-xs transition-all",
-                        newEntry.mood === m ? "bg-indigo-600 text-white" : "bg-white/5 text-white/40 hover:bg-white/10"
+                        newEntry.mood === m ? "bg-red-600 text-white" : "bg-white/5 text-white/40 hover:bg-white/10"
                       )}
                     >
                       {m}
@@ -3123,10 +3173,10 @@ function ShadowJournal({ user, showConfirm }: { user: UserProfile, showConfirm: 
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {entries.map(entry => (
-          <GlassCard key={entry.id} className="p-6 space-y-4 hover:border-indigo-500/30 transition-all group">
+          <GlassCard key={entry.id} className="p-6 space-y-4 hover:border-red-500/30 transition-all group">
             <div className="flex justify-between items-start">
               <div>
-                <h4 className="font-bold text-indigo-300">{entry.title || 'Reflexão Sem Título'}</h4>
+                <h4 className="font-bold text-red-300">{entry.title || 'Reflexão Sem Título'}</h4>
                 <p className="text-[10px] text-white/30 uppercase tracking-widest mt-1">
                   {entry.createdAt?.toDate ? formatDistanceToNow(entry.createdAt.toDate(), { addSuffix: true, locale: ptBR }) : 'Agora mesmo'}
                 </p>
@@ -3476,7 +3526,7 @@ function InitiationPath({ user }: { user: UserProfile }) {
       <div className="lg:col-span-2 space-y-8">
         <div>
           <h3 className="text-xl font-bold flex items-center gap-2">
-            <Compass className="w-5 h-5 text-indigo-400" />
+            <Compass className="w-5 h-5 text-red-400" />
             O Véu de Ísis
           </h3>
           <p className="text-sm text-white/50">Sua jornada através dos mistérios graduais.</p>
@@ -3491,8 +3541,8 @@ function InitiationPath({ user }: { user: UserProfile }) {
               <div key={step.level} className="relative pl-16 group">
                 <div className={cn(
                   "absolute left-0 top-0 w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all z-10",
-                  isUnlocked ? "bg-indigo-600 border-indigo-400 text-white shadow-lg shadow-indigo-600/40" : 
-                  isNext ? "bg-white/5 border-indigo-500/50 text-indigo-400 animate-pulse" : "bg-black border-white/10 text-white/20"
+                  isUnlocked ? "bg-red-600 border-red-400 text-white shadow-lg shadow-red-600/40" : 
+                  isNext ? "bg-white/5 border-red-500/50 text-red-400 animate-pulse" : "bg-black border-white/10 text-white/20"
                 )}>
                   {isUnlocked ? <CheckCircle2 className="w-6 h-6" /> : <span className="font-bold">{step.level}</span>}
                 </div>
@@ -3500,7 +3550,7 @@ function InitiationPath({ user }: { user: UserProfile }) {
                 <div className={cn(
                   "p-6 rounded-2xl border transition-all",
                   isUnlocked ? "bg-white/5 border-white/10" : 
-                  isNext ? "bg-indigo-500/5 border-indigo-500/20" : "opacity-40 border-transparent"
+                  isNext ? "bg-red-500/5 border-red-500/20" : "opacity-40 border-transparent"
                 )}>
                   <div className="flex justify-between items-start">
                     <h4 className={cn("text-lg font-bold", isUnlocked ? "text-white" : "text-white/40")}>{step.name}</h4>
@@ -3509,13 +3559,13 @@ function InitiationPath({ user }: { user: UserProfile }) {
                   <p className="text-sm text-white/50 mt-2">{step.description}</p>
                   {isNext && (
                     <div className="mt-4 pt-4 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                      <p className="text-xs font-bold text-red-400 uppercase tracking-widest flex items-center gap-2">
                         <Star className="w-3 h-3" />
                         Requisito: {step.requirement}
                       </p>
                       <button 
                         onClick={() => unlockLevel(step)}
-                        className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition-colors shadow-lg shadow-indigo-600/20"
+                        className="bg-red-600 hover:bg-red-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition-colors shadow-lg shadow-red-600/20"
                       >
                         Ascender ao Grau {step.level}
                       </button>
@@ -3532,39 +3582,39 @@ function InitiationPath({ user }: { user: UserProfile }) {
           <motion.div 
             initial={{ opacity: 0, y: 20 }} 
             animate={{ opacity: 1, y: 0 }} 
-            className="p-8 rounded-3xl bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border border-indigo-500/30 space-y-8"
+            className="p-8 rounded-3xl bg-gradient-to-br from-red-900/40 to-purple-900/40 border border-red-500/30 space-y-8"
           >
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-indigo-600/20 rounded-2xl flex items-center justify-center border border-indigo-500/30">
-                <Eye className="w-10 h-10 text-indigo-400" />
+              <div className="w-16 h-16 bg-red-600/20 rounded-2xl flex items-center justify-center border border-red-500/30">
+                <Eye className="w-10 h-10 text-red-400" />
               </div>
               <div>
                 <h3 className="text-2xl font-bold tracking-tight">Visão de Ísis</h3>
-                <p className="text-indigo-200/60">Estatísticas Ocultas e Decretos de Unidade.</p>
+                <p className="text-red-200/60">Estatísticas Ocultas e Decretos de Unidade.</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-center space-y-1">
                 <p className="text-[10px] uppercase tracking-widest text-white/40">Buscadores Ativos</p>
-                <p className="text-2xl font-bold text-indigo-400">{communityProgress.length * 42}</p>
+                <p className="text-2xl font-bold text-red-400">{communityProgress.length * 42}</p>
               </div>
               <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-center space-y-1">
                 <p className="text-[10px] uppercase tracking-widest text-white/40">Transmutações Totais</p>
-                <p className="text-2xl font-bold text-indigo-400">1.618</p>
+                <p className="text-2xl font-bold text-red-400">1.618</p>
               </div>
               <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-center space-y-1">
                 <p className="text-[10px] uppercase tracking-widest text-white/40">Frequência da Egrégora</p>
-                <p className="text-2xl font-bold text-indigo-400">432 Hz</p>
+                <p className="text-2xl font-bold text-red-400">432 Hz</p>
               </div>
             </div>
 
             <div className="space-y-4">
               <h4 className="text-sm font-bold uppercase tracking-widest text-white/40">Decretos de Unidade</h4>
-              <div className="p-4 rounded-2xl bg-black/40 border border-white/5 italic text-indigo-200/80 text-sm">
+              <div className="p-4 rounded-2xl bg-black/40 border border-white/5 italic text-red-200/80 text-sm">
                 "Que a luz da consciência dissipe as brumas da ilusão. Somos todos um no Círculo Hermético."
               </div>
-              <GlassButton className="w-full py-4 text-sm bg-indigo-600/20 border-indigo-500/30 text-indigo-300">
+              <GlassButton className="w-full py-4 text-sm bg-red-600/20 border-red-500/30 text-red-300">
                 Emitir Novo Decreto
               </GlassButton>
             </div>
@@ -3575,7 +3625,7 @@ function InitiationPath({ user }: { user: UserProfile }) {
       <div className="space-y-8">
         <GlassCard className="p-6 space-y-6">
           <h3 className="text-lg font-bold flex items-center gap-2">
-            <Users className="w-5 h-5 text-indigo-400" />
+            <Users className="w-5 h-5 text-red-400" />
             Egrégora Digital
           </h3>
           <p className="text-xs text-white/40 leading-relaxed">
@@ -3594,7 +3644,7 @@ function InitiationPath({ user }: { user: UserProfile }) {
                       key={l} 
                       className={cn(
                         "w-1.5 h-3 rounded-full",
-                        l <= p.level ? "bg-indigo-500" : "bg-white/10"
+                        l <= p.level ? "bg-red-500" : "bg-white/10"
                       )} 
                     />
                   ))}
@@ -3604,9 +3654,9 @@ function InitiationPath({ user }: { user: UserProfile }) {
           </div>
         </GlassCard>
 
-        <GlassCard className="p-6 bg-gradient-to-br from-indigo-600/20 to-purple-600/20 border-indigo-500/30">
+        <GlassCard className="p-6 bg-gradient-to-br from-red-600/20 to-purple-600/20 border-red-500/30">
           <h4 className="font-bold flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-indigo-400" />
+            <Sparkles className="w-4 h-4 text-red-400" />
             Gnose Diária
           </h4>
           <p className="text-sm text-white/70 mt-3 italic leading-relaxed">
