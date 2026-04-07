@@ -14,6 +14,15 @@ export interface UserProfile {
   lastChatActivity?: any;
   preferences?: UserPreferences;
   seenOracleMessages?: number[];
+  hasSeenOnboarding?: boolean;
+  favoriteBooks?: string[];
+}
+
+export interface ReadingProgress {
+  bookId: string;
+  currentPage: number;
+  totalPages: number;
+  lastReadAt: any;
 }
 
 export interface Book {
@@ -24,6 +33,7 @@ export interface Book {
   categories: string[];
   coverUrl: string;
   pdfUrl?: string;
+  pdfSize?: number;
   uploadedBy: string;
   createdAt: any;
 }

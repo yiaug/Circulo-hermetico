@@ -110,7 +110,7 @@ service cloud.firestore {
     }
 
     function isValidBook(data) {
-      return hasOnlyAllowedFields(['title', 'author', 'synopsis', 'categories', 'coverUrl', 'pdfUrl', 'uploadedBy', 'createdAt']) &&
+      return hasOnlyAllowedFields(['title', 'author', 'synopsis', 'categories', 'coverUrl', 'pdfUrl', 'pdfSize', 'uploadedBy', 'createdAt']) &&
              hasRequiredFields(['title', 'author', 'categories', 'createdAt']) &&
              isValidString('title', 1, 200) &&
              isValidString('author', 1, 100) &&
@@ -118,6 +118,7 @@ service cloud.firestore {
              isValidList(data.categories, 10) &&
              (data.coverUrl == "" || isValidUrl(data.coverUrl)) &&
              (!('pdfUrl' in data) || data.pdfUrl == "" || isValidUrl(data.pdfUrl)) &&
+             (!('pdfSize' in data) || data.pdfSize is number) &&
              isRecentOrUnchanged('createdAt');
     }
 
@@ -135,9 +136,9 @@ service cloud.firestore {
       return hasOnlyAllowedFields(['id', 'name', 'maxUsers', 'createdBy', 'creatorName', 'createdAt', 'activeUsers', 'bannedUsers']) &&
              isValidString('name', 1, 100) &&
              isValidString('creatorName', 1, 100) &&
-             data.maxUsers is number && data.maxUsers >= 2 && data.maxUsers <= 50 &&
+             data.maxUsers is number && data.maxUsers >= 2 && data.maxUsers <= 1000 &&
              data.createdBy == request.auth.uid &&
-             (!('activeUsers' in data) || isValidList(data.activeUsers, 50)) &&
+             (!('activeUsers' in data) || isValidList(data.activeUsers, 1000)) &&
              (!('bannedUsers' in data) || isValidList(data.bannedUsers, 1000)) &&
              isRecentOrUnchanged('createdAt');
     }
@@ -147,8 +148,8 @@ service cloud.firestore {
              isValidString('name', 1, 100) &&
              isValidString('theme', 1, 200) &&
              isValidString('creatorName', 1, 100) &&
-             data.maxParticipants is number && data.maxParticipants >= 2 && data.maxParticipants <= 20 &&
-             (!('activeParticipants' in data) || isValidList(data.activeParticipants, 20)) &&
+             data.maxParticipants is number && data.maxParticipants >= 2 && data.maxParticipants <= 1000 &&
+             (!('activeParticipants' in data) || isValidList(data.activeParticipants, 1000)) &&
              isRecentOrUnchanged('createdAt');
     }
 
@@ -259,6 +260,10 @@ service cloud.firestore {
         allow read: if isAuthenticated();
         allow write: if isOwner(userId) && (request.method == 'delete' || isValidAnalogy(request.resource.data));
       }
+      match /readingProgress/{bookId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
     }
 
     // Books
@@ -292,6 +297,12 @@ service cloud.firestore {
     match /settings/{settingId} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    // Bandwidth Stats
+    match /bandwidthStats/{dateId} {
+      allow read: if isAdmin();
+      allow write: if isAuthenticated(); // Allow any logged-in user to increment stats
     }
 
     // Voice Rooms

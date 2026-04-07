@@ -22,6 +22,7 @@ export function CommunityChat({ user, showNotification, showConfirm }: {
   const [newRoomName, setNewRoomName] = useState('');
   const [newRoomMaxUsers, setNewRoomMaxUsers] = useState(10);
   const [isManaging, setIsManaging] = useState(false);
+  const [messageLimit, setMessageLimit] = useState(20);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Fetch rooms
@@ -44,7 +45,7 @@ export function CommunityChat({ user, showNotification, showConfirm }: {
       collection(db, 'chat'), 
       where('roomId', '==', roomId),
       orderBy('createdAt', 'desc'), 
-      limit(50)
+      limit(messageLimit)
     );
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -53,7 +54,7 @@ export function CommunityChat({ user, showNotification, showConfirm }: {
       handleFirestoreError(error, OperationType.LIST, 'chat');
     });
     return () => unsubscribe();
-  }, [activeRoom]);
+  }, [activeRoom, messageLimit]);
 
   const activeRoomId = activeRoom === 'global' ? 'global' : activeRoom?.id;
 
@@ -73,11 +74,18 @@ export function CommunityChat({ user, showNotification, showConfirm }: {
     }
   }, [rooms, activeRoomId, user.uid, showNotification]);
 
+  // Scroll to bottom only on initial load or when sending a message
   useEffect(() => {
-    if (scrollRef.current) {
+    if (scrollRef.current && messageLimit === 20) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, messageLimit]);
+
+  const handleScroll = () => {
+    if (scrollRef.current && scrollRef.current.scrollTop === 0) {
+      setMessageLimit(prev => prev + 20);
+    }
+  };
 
   const handleCreateRoom = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -408,7 +416,17 @@ export function CommunityChat({ user, showNotification, showConfirm }: {
       )}
 
       <GlassCard className="flex-1 flex flex-col">
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+        <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+          {messages.length >= messageLimit && (
+            <div className="text-center py-2">
+              <button 
+                onClick={() => setMessageLimit(prev => prev + 20)}
+                className="text-xs text-white/50 hover:text-white bg-white/5 px-3 py-1 rounded-full transition-colors"
+              >
+                Carregar mensagens anteriores
+              </button>
+            </div>
+          )}
           {messages.map(msg => (
             <div key={msg.id} className={cn("flex gap-3 max-w-[80%]", msg.userId === user.uid ? "ml-auto flex-row-reverse" : "")}>
               <img src={msg.userPhoto} alt={msg.userName} className="w-8 h-8 rounded-full shrink-0 self-end" />

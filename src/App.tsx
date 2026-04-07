@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-// Forçando uma nova atualização para liberar o botão do GitHub
+// Forçando uma nova atualização para liberar o cache do PWA
 import { 
   Book as BookIcon, 
   AlertCircle,
@@ -44,7 +44,12 @@ import {
   Download,
   ChevronDown,
   Edit2,
-  Trash2
+  Trash2,
+  Hexagon,
+  Radio,
+  FlaskConical,
+  ScrollText,
+  Gem
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { io } from 'socket.io-client';
@@ -76,6 +81,8 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, db, storage, googleProvider } from './firebase';
 import { CasaAlquimista } from './components/CasaAlquimista';
 import { CommunityChat } from './components/CommunityChat';
+import { PDFReader } from './components/PDFReader';
+import { BandwidthMonitor } from './components/BandwidthMonitor';
 import { UserProfile, Book, Comment, ChatMessage, Category, VoiceRoom, ShadowEntry, DailyRitual, InitiationLevel, Transmutation, Analogy, ChatRoom } from './types';
 import { cn } from './lib/utils';
 import { formatDistanceToNow } from 'date-fns';
@@ -244,18 +251,34 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 export function AppContent() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isAuthorizing, setIsAuthorizing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'library' | 'community' | 'admin' | 'voice' | 'laboratorio' | 'oracle' | 'donation' | 'casa-alquimista'>('library');
+  const [activeTab, setActiveTab] = useState<'library' | 'community' | 'admin' | 'voice' | 'laboratorio' | 'oracle' | 'casa-alquimista'>('library');
+  const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
+  const [bookLimit, setBookLimit] = useState(20);
   const [searchQuery, setSearchQuery] = useState('');
   const [appSettings, setAppSettings] = useState({ maintenance: false, registrationOpen: true });
   const [categories, setCategories] = useState<string[]>(['Todos', 'Hermetismo', 'Magia', 'Alquimia', 'Astrologia', 'Teosofia', 'Ocultismo']);
 
   const [notification, setNotification] = useState<{ message: string, type: 'error' | 'info' | 'success' } | null>(null);
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void } | null>(null);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const showNotification = (message: string, type: 'error' | 'info' | 'success' = 'info') => {
     setNotification({ message, type });
@@ -365,7 +388,8 @@ export function AppContent() {
             role: firebaseUser.email?.toLowerCase() === 'smiley62830@gmail.com' ? 'admin' : 'user',
             isAuthorized: firebaseUser.email?.toLowerCase() === 'smiley62830@gmail.com',
             preferences: { darkMode: false, fontSize: 100 },
-            meritPoints: 0
+            meritPoints: 0,
+            hasSeenOnboarding: false
           };
           try {
             await setDoc(userRef, newUser);
@@ -469,7 +493,7 @@ export function AppContent() {
       setBooks([]);
       return;
     }
-    const q = query(collection(db, 'books'), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, 'books'), orderBy('createdAt', 'desc'), limit(bookLimit));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setBooks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Book)));
     }, (error) => {
@@ -482,7 +506,7 @@ export function AppContent() {
       handleFirestoreError(error, OperationType.GET, 'books');
     });
     return () => unsubscribe();
-  }, [user]);
+  }, [user, bookLimit]);
 
   // Fetch Chat
   // Chat fetching moved to CommunityChat component
@@ -501,7 +525,7 @@ export function AppContent() {
       console.error("Login Error:", error);
       if (error.code === 'auth/popup-blocked') {
         showNotification("O login foi bloqueado pelo navegador. Por favor, permita pop-ups para este site e tente novamente.", 'error');
-      } else if (error.code === 'auth/cancelled-popup-request') {
+      } else if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
         console.log("Login popup was closed or cancelled.");
       } else if (error.code === 'auth/internal-error' || error.message?.includes('INTERNAL ASSERTION FAILED')) {
         showNotification("Ocorreu um erro interno na autenticação. Por favor, recarregue a página e tente novamente.", 'error');
@@ -561,8 +585,8 @@ export function AppContent() {
           className="max-w-md w-full"
         >
           <GlassCard className="p-8 text-center space-y-6">
-            <div className="w-20 h-20 bg-red-600/20 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-500/30">
-              <BookIcon className="w-10 h-10 text-red-400" />
+            <div className="w-24 h-24 bg-black rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-500/30 overflow-hidden shadow-[0_0_30px_rgba(220,38,38,0.2)]">
+              <img src="https://i.imgur.com/sdNwUpy.png" alt="Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
             </div>
             <h1 className="text-3xl font-bold text-white tracking-tight">Círculo Hermético</h1>
             <p className="text-red-200/70">
@@ -634,9 +658,9 @@ export function AppContent() {
               boxShadow: ["0 0 0px rgba(220, 38, 38, 0)", "0 0 15px rgba(220, 38, 38, 0.5)", "0 0 0px rgba(220, 38, 38, 0)"]
             }}
             transition={{ duration: 2, repeat: Infinity }}
-            className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center shrink-0"
+            className="w-10 h-10 bg-black rounded-lg flex items-center justify-center shrink-0 overflow-hidden"
           >
-            <Sparkles className="w-5 h-5 text-white" />
+            <img src="https://i.imgur.com/sdNwUpy.png" alt="Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
           </motion.div>
           <div className="flex flex-col">
             <span className="font-bold text-sm tracking-tight">Círculo Hermético</span>
@@ -646,6 +670,13 @@ export function AppContent() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setIsDonationModalOpen(true)}
+            className="flex items-center gap-2 px-2 py-1.5 bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 rounded-full text-xs font-bold text-red-100 transition-all shadow-[0_0_15px_rgba(220,38,38,0.2)]"
+          >
+            <Gem className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Apoiar</span>
+          </button>
           <img src={user.photoURL} alt={user.displayName} className="w-8 h-8 rounded-full border border-white/20" />
           <button onClick={handleLogout} className="p-2 text-white/50 hover:text-white">
             <LogOut className="w-5 h-5" />
@@ -659,20 +690,29 @@ export function AppContent() {
           <div className="flex items-center gap-3 px-2">
             <motion.div 
               animate={{ 
-                rotate: [0, 10, -10, 0],
-                scale: [1, 1.1, 1]
+                rotate: [0, 5, -5, 0],
+                scale: [1, 1.05, 1]
               }}
               transition={{ duration: 5, repeat: Infinity }}
-              className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(220,38,38,0.3)]"
+              className="w-12 h-12 bg-black rounded-xl flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(220,38,38,0.3)] overflow-hidden"
             >
-              <Sparkles className="w-6 h-6 text-white" />
+              <img src="https://i.imgur.com/sdNwUpy.png" alt="Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
             </motion.div>
             <div className="hidden lg:flex flex-col">
-              <span className="font-bold text-xl tracking-tight">Círculo Hermético</span>
+              <span className="font-bold text-xl tracking-tight font-serif text-red-50">Círculo Hermético</span>
               <div className={cn("text-xs font-bold flex items-center gap-1", PLANETARY_COLORS[getPlanetaryHour()])}>
                 {PLANETARY_SYMBOLS[getPlanetaryHour()]} Hora de {getPlanetaryHour()}
               </div>
             </div>
+          </div>
+          <div className="hidden lg:block px-2">
+            <button 
+              onClick={() => setIsDonationModalOpen(true)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-600/20 to-amber-600/20 hover:from-red-600/40 hover:to-amber-600/40 border border-red-500/30 rounded-xl text-sm font-bold text-red-100 transition-all shadow-[0_0_15px_rgba(220,38,38,0.15)] group"
+            >
+              <Gem className="w-4 h-4 group-hover:scale-110 transition-transform" />
+              Apoiar a Egrégora
+            </button>
           </div>
         </div>
 
@@ -688,13 +728,13 @@ export function AppContent() {
           <NavButton 
             active={activeTab === 'library'} 
             onClick={() => { setActiveTab('library'); setSelectedBook(null); }}
-            icon={<Library className="w-5 h-5" />}
+            icon={<ScrollText className="w-5 h-5" />}
             label="Biblioteca"
           />
           <NavButton 
             active={activeTab === 'casa-alquimista'} 
             onClick={() => { setActiveTab('casa-alquimista'); setSelectedBook(null); }}
-            icon={<Star className="w-5 h-5" />}
+            icon={<Flame className="w-5 h-5" />}
             label="Casa do Alquimista"
           />
           <NavButton 
@@ -706,26 +746,20 @@ export function AppContent() {
           <NavButton 
             active={activeTab === 'oracle'} 
             onClick={() => { setActiveTab('oracle'); setSelectedBook(null); }}
-            icon={<Sparkles className="w-5 h-5" />}
+            icon={<Eye className="w-5 h-5" />}
             label="Oráculo"
           />
           <NavButton 
             active={activeTab === 'voice'} 
             onClick={() => { setActiveTab('voice'); setSelectedBook(null); }}
-            icon={<Volume2 className="w-5 h-5" />}
+            icon={<Radio className="w-5 h-5" />}
             label="Salas de Voz"
           />
           <NavButton 
             active={activeTab === 'laboratorio'} 
             onClick={() => { setActiveTab('laboratorio'); setSelectedBook(null); }}
-            icon={<Activity className="w-5 h-5" />}
+            icon={<FlaskConical className="w-5 h-5" />}
             label="Laboratório"
-          />
-          <NavButton 
-            active={activeTab === 'donation'} 
-            onClick={() => { setActiveTab('donation'); setSelectedBook(null); }}
-            icon={<Heart className="w-5 h-5" />}
-            label="Doação PIX"
           />
         </div>
 
@@ -753,6 +787,7 @@ export function AppContent() {
           {selectedBook ? (
             <BookDetails 
               book={selectedBook} 
+              user={user}
               onBack={() => setSelectedBook(null)} 
             />
           ) : activeTab === 'library' ? (
@@ -783,6 +818,18 @@ export function AppContent() {
               </header>
 
               <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                <button
+                  onClick={() => setSelectedCategory('Meus Favoritos')}
+                  className={cn(
+                    "px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all border flex items-center gap-2",
+                    selectedCategory === 'Meus Favoritos' 
+                      ? "bg-red-600 text-white border-red-500 shadow-lg shadow-red-600/20" 
+                      : "bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white"
+                  )}
+                >
+                  <Heart className="w-4 h-4" />
+                  Meus Favoritos
+                </button>
                 {categories.map(cat => (
                   <button
                     key={cat}
@@ -811,6 +858,7 @@ export function AppContent() {
                       <BookCard 
                         key={`rec-${book.id}`} 
                         book={book} 
+                        user={user}
                         onClick={() => { 
                           setSelectedBook(book);
                         }} 
@@ -822,12 +870,18 @@ export function AppContent() {
 
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6">
                 {books
-                  .filter(b => (selectedCategory === 'Todos' || (b.categories && b.categories.includes(selectedCategory))) && 
-                    (b.title.toLowerCase().includes(searchQuery.toLowerCase()) || b.author.toLowerCase().includes(searchQuery.toLowerCase())))
+                  .filter(b => {
+                    if (selectedCategory === 'Meus Favoritos') {
+                      return user?.favoriteBooks?.includes(b.id);
+                    }
+                    return (selectedCategory === 'Todos' || (b.categories && b.categories.includes(selectedCategory)));
+                  })
+                  .filter(b => b.title.toLowerCase().includes(searchQuery.toLowerCase()) || b.author.toLowerCase().includes(searchQuery.toLowerCase()))
                   .map(book => (
                     <BookCard 
                       key={book.id} 
                       book={book} 
+                      user={user}
                       onClick={() => { 
                         setSelectedBook(book);
                       }} 
@@ -842,6 +896,17 @@ export function AppContent() {
                   </div>
                 )}
               </div>
+              
+              {books.length >= bookLimit && (
+                <div className="flex justify-center mt-8">
+                  <GlassButton 
+                    onClick={() => setBookLimit(prev => prev + 20)}
+                    className="bg-white/5 hover:bg-white/10"
+                  >
+                    Carregar mais livros
+                  </GlassButton>
+                </div>
+              )}
             </motion.div>
           ) : activeTab === 'casa-alquimista' ? (
             <CasaAlquimista />
@@ -853,8 +918,6 @@ export function AppContent() {
             <VoiceRooms user={user} showNotification={showNotification} />
           ) : activeTab === 'laboratorio' ? (
             <Laboratorio user={user} showConfirm={showConfirm} />
-          ) : activeTab === 'donation' ? (
-            <DonationPanel showNotification={showNotification} />
           ) : (
             <AdminPanel user={user} appSettings={appSettings} categories={categories} books={books} showConfirm={showConfirm} />
           )}
@@ -862,17 +925,17 @@ export function AppContent() {
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-black/60 backdrop-blur-2xl border-t border-white/10 px-2 py-3 flex justify-around items-center z-50">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-2xl border-t border-red-900/30 px-2 py-3 flex justify-around items-center z-50 shadow-[0_-10px_30px_rgba(220,38,38,0.1)]">
         <MobileNavButton 
           active={activeTab === 'library'} 
           onClick={() => { setActiveTab('library'); setSelectedBook(null); }}
-          icon={<Library className="w-5 h-5" />}
+          icon={<ScrollText className="w-5 h-5" />}
           label="Biblioteca"
         />
         <MobileNavButton 
           active={activeTab === 'casa-alquimista'} 
           onClick={() => { setActiveTab('casa-alquimista'); setSelectedBook(null); }}
-          icon={<Star className="w-5 h-5" />}
+          icon={<Flame className="w-5 h-5" />}
           label="A Casa"
         />
         <MobileNavButton 
@@ -884,26 +947,20 @@ export function AppContent() {
         <MobileNavButton 
           active={activeTab === 'oracle'} 
           onClick={() => { setActiveTab('oracle'); setSelectedBook(null); }}
-          icon={<Sparkles className="w-5 h-5" />}
+          icon={<Eye className="w-5 h-5" />}
           label="Oráculo"
         />
         <MobileNavButton 
           active={activeTab === 'voice'} 
           onClick={() => { setActiveTab('voice'); setSelectedBook(null); }}
-          icon={<Volume2 className="w-5 h-5" />}
+          icon={<Radio className="w-5 h-5" />}
           label="Voz"
         />
         <MobileNavButton 
           active={activeTab === 'laboratorio'} 
           onClick={() => { setActiveTab('laboratorio'); setSelectedBook(null); }}
-          icon={<Activity className="w-5 h-5" />}
+          icon={<FlaskConical className="w-5 h-5" />}
           label="Lab"
-        />
-        <MobileNavButton 
-          active={activeTab === 'donation'} 
-          onClick={() => { setActiveTab('donation'); setSelectedBook(null); }}
-          icon={<Heart className="w-5 h-5" />}
-          label="Doação"
         />
       </nav>
 
@@ -925,6 +982,21 @@ export function AppContent() {
              notification.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> :
              <Info className="w-5 h-5" />}
             <span className="font-bold text-sm tracking-tight">{notification.message}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Offline Indicator */}
+      <AnimatePresence>
+        {isOffline && (
+          <motion.div 
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            className="fixed top-0 left-0 right-0 z-[200] p-2 bg-red-600 text-white text-center text-xs font-bold flex items-center justify-center gap-2"
+          >
+            <AlertCircle className="w-4 h-4" />
+            Você está offline. O Círculo Hermético está funcionando no modo cache.
           </motion.div>
         )}
       </AnimatePresence>
@@ -964,6 +1036,29 @@ export function AppContent() {
               </GlassCard>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Donation Modal */}
+      <AnimatePresence>
+        {isDonationModalOpen && (
+          <DonationModal 
+            onClose={() => setIsDonationModalOpen(false)}
+            showNotification={showNotification}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Onboarding Modal */}
+      <AnimatePresence>
+        {user && user.isAuthorized && user.hasSeenOnboarding === false && (
+          <OnboardingModal 
+            user={user}
+            onClose={() => {
+              // Optimistically update local state to hide it immediately
+              setUser({ ...user, hasSeenOnboarding: true });
+            }}
+          />
         )}
       </AnimatePresence>
     </div>
@@ -1849,11 +1944,25 @@ function NavButton({ active, onClick, icon, label }: any) {
   );
 }
 
-function BookCard({ book, onClick }: any) {
-  const handleWhatsApp = (e: React.MouseEvent) => {
+function BookCard({ book, user, onClick }: any) {
+  const isFavorite = user?.favoriteBooks?.includes(book.id);
+
+  const handleToggleFavorite = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const message = encodeURIComponent(`Olá! Gostaria de solicitar o PDF do livro: ${book.title}`);
-    window.open(`https://wa.me/5541995647137?text=${message}`, '_blank');
+    if (!user) return;
+    
+    const currentFavorites = user.favoriteBooks || [];
+    const newFavorites = isFavorite 
+      ? currentFavorites.filter((id: string) => id !== book.id)
+      : [...currentFavorites, book.id];
+      
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        favoriteBooks: newFavorites
+      });
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+    }
   };
 
   return (
@@ -1862,19 +1971,19 @@ function BookCard({ book, onClick }: any) {
       onClick={onClick}
       className="cursor-pointer group"
     >
-      <GlassCard className="h-full flex flex-col">
+      <GlassCard className="h-full flex flex-col relative">
         <div className="aspect-[3/4] overflow-hidden relative">
           <img 
             src={book.coverUrl || 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=400'} 
             alt={book.title}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
-            <GlassButton onClick={handleWhatsApp} className="w-full bg-green-600/80 hover:bg-green-500">
-              <MessageCircle className="w-4 h-4 mr-2" />
-              Pedir PDF
-            </GlassButton>
-          </div>
+          <button 
+            onClick={handleToggleFavorite}
+            className="absolute top-2 right-2 p-2 rounded-full bg-black/50 backdrop-blur-md text-white/70 hover:text-red-400 transition-colors z-10"
+          >
+            <Heart className={cn("w-5 h-5", isFavorite ? "fill-red-500 text-red-500" : "")} />
+          </button>
         </div>
         <div className="p-4 space-y-1 flex-1">
           <h3 className="font-bold text-lg leading-tight line-clamp-2 group-hover:text-red-400 transition-colors">{book.title}</h3>
@@ -1884,36 +1993,16 @@ function BookCard({ book, onClick }: any) {
   );
 }
 
-function BookDetails({ book, onBack }: { book: Book, onBack: () => void }) {
+function BookDetails({ book, user, onBack }: { book: Book, user: UserProfile, onBack: () => void }) {
   const [isReading, setIsReading] = useState(false);
-
-  const handleWhatsApp = async () => {
-    const message = encodeURIComponent(`Olá! Gostaria de solicitar o livro: ${book.title}`);
-    window.open(`https://wa.me/5541995647137?text=${message}`, '_blank');
-  };
 
   if (isReading && book.pdfUrl) {
     return (
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="space-y-4 max-w-5xl mx-auto h-[80vh] flex flex-col"
-      >
-        <div className="flex items-center gap-3 md:gap-4">
-          <GlassButton variant="ghost" onClick={() => setIsReading(false)} className="p-2 rounded-full shrink-0">
-            <X className="w-5 h-5 md:w-6 md:h-6" />
-          </GlassButton>
-          <h2 className="text-xl md:text-2xl font-bold truncate">{book.title}</h2>
-        </div>
-        <GlassCard className="flex-1 w-full overflow-hidden p-0">
-          <iframe 
-            src={book.pdfUrl} 
-            className="w-full h-full border-0 rounded-2xl"
-            title={`Lendo ${book.title}`}
-            allow="autoplay"
-          />
-        </GlassCard>
-      </motion.div>
+      <PDFReader 
+        book={book} 
+        user={user} 
+        onClose={() => setIsReading(false)} 
+      />
     );
   }
 
@@ -1942,10 +2031,9 @@ function BookDetails({ book, onBack }: { book: Book, onBack: () => void }) {
               Ler Livro Agora
             </GlassButton>
           ) : (
-            <GlassButton onClick={handleWhatsApp} className="w-full py-4 text-lg bg-green-600/80 hover:bg-green-500">
-              <MessageCircle className="w-5 h-5 mr-2" />
-              Solicitar via WhatsApp
-            </GlassButton>
+            <div className="w-full py-4 text-center text-sm text-white/50 bg-white/5 rounded-xl border border-white/10">
+              PDF indisponível no momento
+            </div>
           )}
         </div>
         <div className="space-y-6 text-center md:text-left">
@@ -1963,7 +2051,94 @@ function BookDetails({ book, onBack }: { book: Book, onBack: () => void }) {
   );
 }
 
-function DonationPanel({ showNotification }: { showNotification: (msg: string, type?: 'info' | 'error' | 'success') => void }) {
+function OnboardingModal({ user, onClose }: { user: UserProfile, onClose: () => void }) {
+  const [step, setStep] = useState(0);
+
+  const steps = [
+    {
+      title: "Bem-vindo ao Círculo Hermético",
+      content: "Uma biblioteca digital e comunidade dedicada ao estudo das artes ocultas, hermetismo e alquimia.",
+      icon: <BookOpen className="w-12 h-12 text-red-500 mb-4 mx-auto" />
+    },
+    {
+      title: "Biblioteca Digital",
+      content: "Explore nosso acervo de livros raros e textos sagrados. Você pode ler os PDFs diretamente no aplicativo e salvar seu progresso.",
+      icon: <ScrollText className="w-12 h-12 text-red-500 mb-4 mx-auto" />
+    },
+    {
+      title: "Laboratório do Ser",
+      content: "Utilize ferramentas práticas como o Diário de Sombras, Rituais Diários e a Tábua de Analogias para sua jornada de autoconhecimento.",
+      icon: <FlaskConical className="w-12 h-12 text-red-500 mb-4 mx-auto" />
+    },
+    {
+      title: "A Comunidade",
+      content: "Conecte-se com outros buscadores no Chat Global ou crie salas específicas. Lembre-se do respeito mútuo e do Selo do Taciturno.",
+      icon: <Users className="w-12 h-12 text-red-500 mb-4 mx-auto" />
+    }
+  ];
+
+  const handleNext = async () => {
+    if (step < steps.length - 1) {
+      setStep(step + 1);
+    } else {
+      try {
+        await updateDoc(doc(db, 'users', user.uid), {
+          hasSeenOnboarding: true
+        });
+        onClose();
+      } catch (error) {
+        console.error("Error updating onboarding status:", error);
+        onClose(); // Close anyway to not block the user
+      }
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        className="bg-[#111] border border-red-900/30 p-8 rounded-2xl max-w-md w-full shadow-2xl relative text-center"
+      >
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={step}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.2 }}
+          >
+            {steps[step].icon}
+            <h2 className="text-2xl font-bold mb-4">{steps[step].title}</h2>
+            <p className="text-white/70 mb-8 leading-relaxed">
+              {steps[step].content}
+            </p>
+          </motion.div>
+        </AnimatePresence>
+
+        <div className="flex items-center justify-between mt-8">
+          <div className="flex gap-2">
+            {steps.map((_, i) => (
+              <div 
+                key={i} 
+                className={cn(
+                  "w-2 h-2 rounded-full transition-all",
+                  i === step ? "bg-red-500 w-4" : "bg-white/20"
+                )}
+              />
+            ))}
+          </div>
+          <GlassButton onClick={handleNext} className="bg-red-600/80 hover:bg-red-500">
+            {step < steps.length - 1 ? 'Próximo' : 'Começar'}
+          </GlassButton>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+function DonationModal({ onClose, showNotification }: { onClose: () => void, showNotification: (msg: string, type?: 'info' | 'error' | 'success') => void }) {
   const pixKey = "welllagos@outlook.com"; // Substitua pela sua chave PIX real
 
   const copyPix = () => {
@@ -1972,65 +2147,78 @@ function DonationPanel({ showNotification }: { showNotification: (msg: string, t
   };
 
   return (
-    <div className="max-w-2xl mx-auto py-12 px-4">
-      <GlassCard className="p-8 text-center space-y-8 border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.2)] relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent animate-pulse" />
-        
-        <motion.div 
-          animate={{ 
-            scale: [1, 1.1, 1],
-            rotate: [0, 5, -5, 0]
-          }}
-          transition={{ duration: 4, repeat: Infinity }}
-          className="w-24 h-24 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto border-2 border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.4)]"
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        className="max-w-xl w-full relative"
+      >
+        <button 
+          onClick={onClose}
+          className="absolute -top-4 -right-4 w-10 h-10 bg-red-600 rounded-full flex items-center justify-center text-white hover:bg-red-500 transition-colors shadow-lg z-10"
         >
-          <Sparkles className="w-12 h-12 text-amber-500" />
-        </motion.div>
-        
-        <div className="space-y-4">
-          <h2 className="text-4xl font-black tracking-tight text-white uppercase italic">A Chama não pode apagar!</h2>
-          <p className="text-xl font-bold text-amber-400">O conhecimento Oculto exige sacrifício e manutenção.</p>
-          <p className="text-red-200/80 leading-relaxed">
-            Manter o <span className="text-white font-bold">Círculo Hermético</span> vivo é uma responsabilidade de todos os iniciados. 
-            Sua contribuição não é apenas uma doação, é o combustível que mantém a Grande Obra em movimento. 
-            <span className="block mt-2 text-white font-bold underline decoration-amber-500">Não deixe a luz se extinguir por falta de apoio.</span>
-          </p>
-        </div>
+          <X className="w-5 h-5" />
+        </button>
+        <GlassCard className="p-6 md:p-8 text-center space-y-6 md:space-y-8 border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.2)] relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent animate-pulse" />
+          
+          <motion.div 
+            animate={{ 
+              scale: [1, 1.1, 1],
+              rotate: [0, 5, -5, 0]
+            }}
+            transition={{ duration: 4, repeat: Infinity }}
+            className="w-16 h-16 md:w-24 md:h-24 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto border-2 border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.4)]"
+          >
+            <Gem className="w-8 h-8 md:w-12 md:h-12 text-amber-500" />
+          </motion.div>
+          
+          <div className="space-y-3 md:space-y-4">
+            <h2 className="text-2xl md:text-4xl font-black tracking-tight text-white uppercase italic font-serif">A Chama não pode apagar!</h2>
+            <p className="text-base md:text-xl font-bold text-amber-400">O conhecimento Oculto exige sacrifício e manutenção.</p>
+            <p className="text-sm md:text-base text-red-200/80 leading-relaxed">
+              Manter o <span className="text-white font-bold">Círculo Hermético</span> vivo é uma responsabilidade de todos os iniciados. 
+              Sua contribuição não é apenas uma doação, é o combustível que mantém a Grande Obra em movimento. 
+              <span className="block mt-2 text-white font-bold underline decoration-amber-500">Não deixe a luz se extinguir por falta de apoio.</span>
+            </p>
+          </div>
 
-        <div className="p-8 bg-amber-500/5 rounded-2xl border-2 border-amber-500/30 space-y-6 shadow-inner">
-          <div className="flex flex-col items-center gap-2">
-            <p className="text-sm uppercase tracking-[0.3em] font-black text-amber-500">Chave PIX de Contribuição</p>
-            <p className="text-xs text-white/40">Clique no ícone para copiar e realizar sua parte</p>
+          <div className="p-4 md:p-8 bg-amber-500/5 rounded-2xl border-2 border-amber-500/30 space-y-4 md:space-y-6 shadow-inner">
+            <div className="flex flex-col items-center gap-1 md:gap-2">
+              <p className="text-xs md:text-sm uppercase tracking-[0.3em] font-black text-amber-500">Chave PIX de Contribuição</p>
+              <p className="text-[10px] md:text-xs text-white/40">Clique no ícone para copiar e realizar sua parte</p>
+            </div>
+            <div className="flex items-center justify-between gap-3 md:gap-4 bg-black/60 p-3 md:p-5 rounded-xl border border-amber-500/20 group hover:border-amber-500 transition-colors">
+              <code className="text-sm md:text-2xl font-mono text-white font-bold truncate">{pixKey}</code>
+              <button 
+                onClick={copyPix}
+                className="p-2 md:p-3 bg-amber-500 text-black rounded-lg hover:scale-110 transition-all shadow-lg shadow-amber-500/20 shrink-0"
+                title="Copiar Chave"
+              >
+                <Copy className="w-5 h-5 md:w-6 md:h-6" />
+              </button>
+            </div>
           </div>
-          <div className="flex items-center justify-between gap-4 bg-black/60 p-5 rounded-xl border border-amber-500/20 group hover:border-amber-500 transition-colors">
-            <code className="text-lg md:text-2xl font-mono text-white font-bold truncate">{pixKey}</code>
-            <button 
-              onClick={copyPix}
-              className="p-3 bg-amber-500 text-black rounded-lg hover:scale-110 transition-all shadow-lg shadow-amber-500/20"
-              title="Copiar Chave"
-            >
-              <Copy className="w-6 h-6" />
-            </button>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="p-6 bg-white/5 rounded-xl border border-white/10 hover:bg-amber-500/10 transition-colors">
-            <p className="text-3xl font-black text-white">HONRA</p>
-            <p className="text-xs text-amber-500 font-bold uppercase tracking-widest">Aos que apoiam</p>
+          <div className="grid grid-cols-2 gap-3 md:gap-4">
+            <div className="p-4 md:p-6 bg-white/5 rounded-xl border border-white/10 hover:bg-amber-500/10 transition-colors">
+              <p className="text-xl md:text-3xl font-black text-white font-serif">HONRA</p>
+              <p className="text-[10px] md:text-xs text-amber-500 font-bold uppercase tracking-widest">Aos que apoiam</p>
+            </div>
+            <div className="p-4 md:p-6 bg-white/5 rounded-xl border border-white/10 hover:bg-amber-500/10 transition-colors">
+              <p className="text-xl md:text-3xl font-black text-white font-serif">PODER</p>
+              <p className="text-[10px] md:text-xs text-amber-500 font-bold uppercase tracking-widest">Ao conhecimento livre</p>
+            </div>
           </div>
-          <div className="p-6 bg-white/5 rounded-xl border border-white/10 hover:bg-amber-500/10 transition-colors">
-            <p className="text-3xl font-black text-white">PODER</p>
-            <p className="text-xs text-amber-500 font-bold uppercase tracking-widest">Ao conhecimento livre</p>
-          </div>
-        </div>
 
-        <div className="pt-4">
-          <p className="text-sm text-white/40 italic font-serif">
-            "O silêncio é de ouro, mas a manutenção do Templo exige o suor dos justos."
-          </p>
-        </div>
-      </GlassCard>
+          <div className="pt-2 md:pt-4">
+            <p className="text-xs md:text-sm text-white/40 italic font-serif">
+              "O silêncio é de ouro, mas a manutenção do Templo exige o suor dos justos."
+            </p>
+          </div>
+        </GlassCard>
+      </motion.div>
     </div>
   );
 }
@@ -2042,8 +2230,11 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
   const [bookCategories, setBookCategories] = useState<string[]>([categories[1] || 'Hermetismo']);
   const [coverUrl, setCoverUrl] = useState('');
   const [pdfUrl, setPdfUrl] = useState('');
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [pdfSize, setPdfSize] = useState<number>(0);
   const [editingBookId, setEditingBookId] = useState<string | null>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [adminTab, setAdminTab] = useState<'books' | 'categories' | 'users' | 'moderation' | 'settings'>('books');
   const [selectedUserForPath, setSelectedUserForPath] = useState<UserProfile | null>(null);
@@ -2241,8 +2432,19 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus('loading');
+    setUploadProgress(0);
     
     try {
+      let finalPdfUrl = pdfUrl;
+      let finalPdfSize = pdfSize;
+
+      if (pdfFile) {
+        const fileRef = ref(storage, `books/${Date.now()}_${pdfFile.name}`);
+        await uploadBytes(fileRef, pdfFile);
+        finalPdfUrl = await getDownloadURL(fileRef);
+        finalPdfSize = pdfFile.size;
+      }
+
       if (editingBookId) {
         await updateDoc(doc(db, 'books', editingBookId), {
           title,
@@ -2250,7 +2452,8 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
           synopsis,
           categories: bookCategories,
           coverUrl,
-          pdfUrl
+          pdfUrl: finalPdfUrl,
+          pdfSize: finalPdfSize
         });
         setStatus('success');
         setEditingBookId(null);
@@ -2261,13 +2464,14 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
           synopsis,
           categories: bookCategories,
           coverUrl,
-          pdfUrl,
+          pdfUrl: finalPdfUrl,
+          pdfSize: finalPdfSize,
           uploadedBy: user.uid,
           createdAt: serverTimestamp()
         });
         setStatus('success');
       }
-      setTitle(''); setAuthor(''); setSynopsis(''); setCoverUrl(''); setPdfUrl(''); setBookCategories([categories.filter(c => c !== 'Todos')[0] || 'Hermetismo']);
+      setTitle(''); setAuthor(''); setSynopsis(''); setCoverUrl(''); setPdfUrl(''); setPdfFile(null); setPdfSize(0); setBookCategories([categories.filter(c => c !== 'Todos')[0] || 'Hermetismo']);
       setTimeout(() => setStatus('idle'), 3000);
     } catch (error) {
       console.error("Upload Error:", error);
@@ -2295,24 +2499,26 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      <header className="flex justify-between items-end">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold">Painel do Administrador</h2>
           <p className="text-white/50">Gerencie a biblioteca, usuários e monetização.</p>
         </div>
-        <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 overflow-x-auto no-scrollbar">
-          {['books', 'categories', 'users', 'moderation', 'settings'].map((tab) => (
-            <button 
-              key={tab}
-              onClick={() => setAdminTab(tab as any)}
-              className={cn(
-                "px-4 py-2 rounded-lg text-sm font-medium transition-all capitalize whitespace-nowrap", 
-                adminTab === tab ? "bg-red-600 text-white shadow-lg" : "text-white/50 hover:text-white"
-              )}
-            >
-              {tab === 'books' ? 'Livros' : tab === 'categories' ? 'Categorias' : tab === 'users' ? 'Usuários' : tab === 'moderation' ? 'Moderação' : 'Configurações'}
-            </button>
-          ))}
+        <div className="flex items-center gap-4">
+          <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 overflow-x-auto no-scrollbar">
+            {['books', 'categories', 'users', 'moderation', 'settings'].map((tab) => (
+              <button 
+                key={tab}
+                onClick={() => setAdminTab(tab as any)}
+                className={cn(
+                  "px-4 py-2 rounded-lg text-sm font-medium transition-all capitalize whitespace-nowrap", 
+                  adminTab === tab ? "bg-red-600 text-white shadow-lg" : "text-white/50 hover:text-white"
+                )}
+              >
+                {tab === 'books' ? 'Livros' : tab === 'categories' ? 'Categorias' : tab === 'users' ? 'Usuários' : tab === 'moderation' ? 'Moderação' : 'Configurações'}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
 
@@ -2403,13 +2609,33 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-white/70">URL do PDF (Opcional)</label>
+              <label className="text-sm font-medium text-white/70">Arquivo PDF (Opcional - Upload para o Firebase)</label>
+              <input 
+                type="file"
+                accept="application/pdf"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setPdfFile(e.target.files[0]);
+                    setPdfUrl(''); // Clear URL if file is selected
+                  }
+                }}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:ring-2 focus:ring-red-500/50 outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-500/10 file:text-red-400 hover:file:bg-red-500/20"
+              />
+              {pdfFile && <p className="text-xs text-white/50">Arquivo selecionado: {pdfFile.name} ({(pdfFile.size / 1024 / 1024).toFixed(2)} MB)</p>}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-white/70">OU URL do PDF Externo (Opcional)</label>
               <input 
                 type="url"
                 value={pdfUrl}
-                onChange={(e) => setPdfUrl(e.target.value)}
+                onChange={(e) => {
+                  setPdfUrl(e.target.value);
+                  if (e.target.value) setPdfFile(null); // Clear file if URL is entered
+                }}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:ring-2 focus:ring-red-500/50 outline-none"
                 placeholder="https://... (Link direto para o PDF)"
+                disabled={!!pdfFile}
               />
             </div>
 
@@ -2594,8 +2820,8 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
       ) : adminTab === 'settings' ? (
         <div className="space-y-6">
           <header>
-            <h3 className="text-xl font-bold">Configurações Globais</h3>
-            <p className="text-sm text-white/50">Controle o estado geral do aplicativo.</p>
+            <h3 className="text-xl font-bold">Configurações Globais e Monitoramento</h3>
+            <p className="text-sm text-white/50">Controle o estado geral do aplicativo e monitore o uso de banda.</p>
           </header>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -2627,7 +2853,7 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
                 onClick={() => updateSetting('registrationOpen', !appSettings.registrationOpen)}
                 className={cn(
                   "w-12 h-6 rounded-full relative transition-all",
-                  appSettings.registrationOpen ? "bg-green-500" : "bg-white/10"
+                  appSettings.registrationOpen ? "bg-emerald-500" : "bg-white/10"
                 )}
               >
                 <motion.div 
@@ -2637,6 +2863,8 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
               </button>
             </GlassCard>
           </div>
+
+          <BandwidthMonitor />
 
           <GlassCard className="p-8 border-red-500/20 bg-red-500/5">
             <div className="flex items-center gap-4 mb-6">
@@ -3473,31 +3701,18 @@ function InitiationPath({ user }: { user: UserProfile }) {
       setLevels(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as InitiationLevel)));
     });
 
-    const qComm = query(collection(db, 'users'), where('isAuthorized', '==', true), limit(10));
-    const unsubscribeComm = onSnapshot(qComm, (snapshot) => {
-      const data = snapshot.docs.map(doc => {
-        const d = doc.data();
-        const roleToLevel = (role: string) => {
-          if (role === 'admin') return 5;
-          if (role === 'Mestre da Unidade (Coagulação)') return 5;
-          if (role === 'Alquimista do Pensamento (Destilação)') return 4;
-          if (role === 'Praticante da Vibração (Solução)') return 3;
-          if (role === 'Buscador da Correspondência (Sublimação)') return 2;
-          if (role === 'Neófito do Silêncio (Calcinação)') return 1;
-          return 0;
-        };
-        return {
-          userName: d.displayName,
-          userPhoto: d.photoURL,
-          level: roleToLevel(d.role || '')
-        };
-      });
-      setCommunityProgress(data);
-    });
+    // Marketing: Dummy data for community perception
+    const dummyCommunity = [
+      { userName: 'Adept_77', userPhoto: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Adept_77', level: 4 },
+      { userName: 'Lumina', userPhoto: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lumina', level: 3 },
+      { userName: 'Hermes_Tris', userPhoto: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Hermes_Tris', level: 5 },
+      { userName: 'Seeker_01', userPhoto: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Seeker_01', level: 2 },
+      { userName: 'Nova_Lux', userPhoto: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Nova_Lux', level: 3 },
+    ];
+    setCommunityProgress(dummyCommunity);
 
     return () => {
       unsubscribe();
-      unsubscribeComm();
     };
   }, [user.uid]);
 
