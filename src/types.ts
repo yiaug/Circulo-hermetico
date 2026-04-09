@@ -33,9 +33,9 @@ export interface Book {
   categories: string[];
   coverUrl: string;
   pdfUrl?: string;
-  pdfSize?: number;
   uploadedBy: string;
   createdAt: any;
+  batchId?: string;
 }
 
 export interface Comment {

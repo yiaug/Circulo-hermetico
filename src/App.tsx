@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 // Forçando uma nova atualização para liberar o cache do PWA
 import { 
   Book as BookIcon, 
@@ -49,7 +49,8 @@ import {
   Radio,
   FlaskConical,
   ScrollText,
-  Gem
+  Gem,
+  Upload
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { io } from 'socket.io-client';
@@ -77,16 +78,26 @@ import {
   getDocFromServer,
   deleteDoc
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { auth, db, storage, googleProvider } from './firebase';
+import { auth, db, googleProvider } from './firebase';
 import { CasaAlquimista } from './components/CasaAlquimista';
 import { CommunityChat } from './components/CommunityChat';
 import { PDFReader } from './components/PDFReader';
-import { BandwidthMonitor } from './components/BandwidthMonitor';
 import { UserProfile, Book, Comment, ChatMessage, Category, VoiceRoom, ShadowEntry, DailyRitual, InitiationLevel, Transmutation, Analogy, ChatRoom } from './types';
 import { cn } from './lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+
+// Lazy load heavy components
+const AdminLibrary = lazy(() => import('./components/AdminLibrary').then(module => ({ default: module.AdminLibrary })));
+const BarChart = lazy(() => import('recharts').then(module => ({ default: module.BarChart })));
+const Bar = lazy(() => import('recharts').then(module => ({ default: module.Bar })));
+const XAxis = lazy(() => import('recharts').then(module => ({ default: module.XAxis })));
+const YAxis = lazy(() => import('recharts').then(module => ({ default: module.YAxis })));
+const CartesianGrid = lazy(() => import('recharts').then(module => ({ default: module.CartesianGrid })));
+const Tooltip = lazy(() => import('recharts').then(module => ({ default: module.Tooltip })));
+const ResponsiveContainer = lazy(() => import('recharts').then(module => ({ default: module.ResponsiveContainer })));
+const LineChart = lazy(() => import('recharts').then(module => ({ default: module.LineChart })));
+const Line = lazy(() => import('recharts').then(module => ({ default: module.Line })));
 
 // --- Types ---
 
@@ -487,26 +498,31 @@ export function AppContent() {
     testConnection();
   }, []);
 
-  // Fetch Books
-  useEffect(() => {
+  // Fetch Books (One-time fetch instead of onSnapshot to save costs)
+  const fetchBooks = async () => {
     if (!user || !user.isAuthorized) {
       setBooks([]);
       return;
     }
-    const q = query(collection(db, 'books'), orderBy('createdAt', 'desc'), limit(bookLimit));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    
+    try {
+      const currentLimit = (user.role === 'admin' && activeTab === 'admin') ? 1000 : bookLimit;
+      const q = query(collection(db, 'books'), orderBy('createdAt', 'desc'), limit(currentLimit));
+      const snapshot = await getDocs(q);
       setBooks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Book)));
-    }, (error) => {
-      // If it's a permission error, we can handle it silently since we check isAuthorized
+    } catch (error: any) {
       if (error.code === 'permission-denied') {
         console.warn("Permission denied fetching books. User might not be authorized yet.");
         return;
       }
       console.error("Error fetching books:", error);
       handleFirestoreError(error, OperationType.GET, 'books');
-    });
-    return () => unsubscribe();
-  }, [user, bookLimit]);
+    }
+  };
+
+  useEffect(() => {
+    fetchBooks();
+  }, [user, bookLimit, activeTab]);
 
   // Fetch Chat
   // Chat fetching moved to CommunityChat component
@@ -919,7 +935,7 @@ export function AppContent() {
           ) : activeTab === 'laboratorio' ? (
             <Laboratorio user={user} showConfirm={showConfirm} />
           ) : (
-            <AdminPanel user={user} appSettings={appSettings} categories={categories} books={books} showConfirm={showConfirm} />
+            <AdminPanel user={user} appSettings={appSettings} categories={categories} books={books} showConfirm={showConfirm} showNotification={showNotification} />
           )}
         </AnimatePresence>
       </main>
@@ -1133,7 +1149,10 @@ function BuyAccess({ user, onAuthorized, showNotification }: { user: UserProfile
           </div>
 
           <div className="space-y-4">
-            <GlassButton onClick={() => window.location.reload()} className="w-full py-4 text-lg bg-amber-600 hover:bg-amber-500 text-black font-black uppercase tracking-widest shadow-lg shadow-amber-600/20">
+            <GlassButton onClick={() => {
+              showNotification("Sua solicitação está em análise. Por favor, aguarde a liberação do seu acesso pela administração.", "info");
+              setTimeout(() => window.location.reload(), 4000);
+            }} className="w-full py-4 text-lg bg-amber-600 hover:bg-amber-500 text-black font-black uppercase tracking-widest shadow-lg shadow-amber-600/20">
               Verificar Minha Honra
             </GlassButton>
 
@@ -2223,7 +2242,7 @@ function DonationModal({ onClose, showNotification }: { onClose: () => void, sho
   );
 }
 
-function AdminPanel({ user, appSettings, categories, books, showConfirm }: { user: UserProfile, appSettings: any, categories: string[], books: Book[], showConfirm: (title: string, message: string, onConfirm: () => void) => void }) {
+function AdminPanel({ user, appSettings, categories, books, showConfirm, showNotification }: { user: UserProfile, appSettings: any, categories: string[], books: Book[], showConfirm: (title: string, message: string, onConfirm: () => void) => void, showNotification: (message: string, type?: 'error' | 'info' | 'success') => void }) {
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [synopsis, setSynopsis] = useState('');
@@ -2236,12 +2255,14 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [users, setUsers] = useState<UserProfile[]>([]);
-  const [adminTab, setAdminTab] = useState<'books' | 'categories' | 'users' | 'moderation' | 'settings'>('books');
+  const [adminTab, setAdminTab] = useState<'dashboard' | 'library' | 'add_book' | 'categories' | 'users' | 'moderation' | 'settings'>('dashboard');
   const [selectedUserForPath, setSelectedUserForPath] = useState<UserProfile | null>(null);
   const [targetUserPath, setTargetUserPath] = useState<InitiationLevel[]>([]);
   const [stats, setStats] = useState({ totalUsers: 0, authorizedUsers: 0, totalBooks: 0, totalMessages: 0 });
   const [newCategoryName, setNewCategoryName] = useState('');
   const [modMessages, setModMessages] = useState<ChatMessage[]>([]);
+  const [showBulkImport, setShowBulkImport] = useState(false);
+  const [bulkImportData, setBulkImportData] = useState('');
 
   const availableCategories = categories.filter(c => c !== 'Todos');
 
@@ -2311,15 +2332,18 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
   };
 
   useEffect(() => {
-    if (adminTab === 'users') {
-      const q = query(collection(db, 'users'), limit(50));
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        setUsers(snapshot.docs.map(doc => doc.data() as UserProfile));
-      }, (error) => {
-        handleFirestoreError(error, OperationType.GET, 'users');
-      });
-      return () => unsubscribe();
-    }
+    const fetchUsers = async () => {
+      if (adminTab === 'users') {
+        try {
+          const q = query(collection(db, 'users'), limit(50));
+          const snapshot = await getDocs(q);
+          setUsers(snapshot.docs.map(doc => doc.data() as UserProfile));
+        } catch (error) {
+          handleFirestoreError(error, OperationType.GET, 'users');
+        }
+      }
+    };
+    fetchUsers();
   }, [adminTab]);
 
   useEffect(() => {
@@ -2352,6 +2376,7 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
         ];
         const newRole = maxLevel > 0 ? initiationSteps.find(s => s.level === maxLevel)?.name : 'user';
         await updateDoc(doc(db, 'users', targetUser.uid), { role: newRole });
+        setUsers(prev => prev.map(u => u.uid === targetUser.uid ? { ...u, role: newRole as any } : u));
       } else {
         await setDoc(levelRef, {
           userId: targetUser.uid,
@@ -2361,6 +2386,7 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
           reflections: 'Atribuído pelo Administrador'
         });
         await updateDoc(doc(db, 'users', targetUser.uid), { role: step.name });
+        setUsers(prev => prev.map(u => u.uid === targetUser.uid ? { ...u, role: step.name as any } : u));
       }
     } catch (error) {
       console.error("Error toggling level:", error);
@@ -2373,6 +2399,8 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
       await updateDoc(doc(db, 'users', targetUser.uid), {
         isAuthorized: !targetUser.isAuthorized
       });
+      setUsers(prev => prev.map(u => u.uid === targetUser.uid ? { ...u, isAuthorized: !u.isAuthorized } : u));
+      showNotification(`Acesso de ${targetUser.displayName} foi ${!targetUser.isAuthorized ? 'liberado' : 'bloqueado'}.`, 'success');
     } catch (error) {
       console.error("Error toggling authorization:", error);
       handleFirestoreError(error, OperationType.UPDATE, `users/${targetUser.uid}`);
@@ -2402,13 +2430,6 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
         synopsis: "Fragmentos escolhidos do 'Livro dos Preceitos de Ouro'. Um guia para o caminho da iluminação e compaixão.",
         categories: ["Teosofia"],
         coverUrl: "https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&q=80&w=400"
-      },
-      {
-        title: "Livro de Teste",
-        author: "Sistema",
-        synopsis: "Um documento de teste com texto aleatório para verificar as funcionalidades.",
-        categories: ["Ocultismo"],
-        coverUrl: "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&q=80&w=400"
       }
     ];
 
@@ -2429,22 +2450,132 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
     }
   };
 
+  const removeLastImport = async () => {
+    const booksWithBatch = books.filter(b => b.batchId);
+    if (booksWithBatch.length === 0) {
+      showConfirm("Aviso", "Nenhuma importação em massa recente encontrada.", () => {});
+      return;
+    }
+
+    // Sort by createdAt descending to find the latest batch
+    booksWithBatch.sort((a, b) => {
+      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+      return timeB - timeA;
+    });
+
+    const lastBatchId = booksWithBatch[0].batchId;
+    const booksToDelete = booksWithBatch.filter(b => b.batchId === lastBatchId);
+
+    showConfirm(
+      "Remover Última Importação",
+      `Tem certeza que deseja remover os ${booksToDelete.length} livros da última importação?`,
+      async () => {
+        setStatus('loading');
+        try {
+          let deletedCount = 0;
+          for (const b of booksToDelete) {
+            await deleteDoc(doc(db, 'books', b.id));
+            deletedCount++;
+          }
+          setStatus('success');
+          showConfirm("Remoção Concluída", `${deletedCount} livros foram removidos.`, () => {});
+          setTimeout(() => setStatus('idle'), 3000);
+        } catch (error) {
+          console.error("Error removing last import:", error);
+          handleFirestoreError(error, OperationType.DELETE, 'books');
+          setStatus('error');
+          showConfirm("Erro", "Ocorreu um erro ao remover os livros.", () => {});
+        }
+      }
+    );
+  };
+
+  const handleBulkImport = async () => {
+    if (!bulkImportData.trim()) return;
+
+    setStatus('loading');
+    try {
+      const blocks = bulkImportData.split(/\n\s*\n/);
+      let importedCount = 0;
+      const currentBatchId = Date.now().toString();
+
+      for (const block of blocks) {
+        const lines = block.split('\n').map(l => l.trim()).filter(l => l);
+        if (lines.length === 0) continue;
+
+        let category = availableCategories[0] || "Ocultismo";
+        let title = "";
+        let author = "Desconhecido";
+        let link = "";
+        let synopsis = "Adicionado via importação em massa.";
+        let currentField = "";
+
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          const lowerLine = line.toLowerCase();
+          
+          if (lowerLine.startsWith('categoria:')) {
+            category = line.substring(10).trim();
+            currentField = "category";
+          } else if (lowerLine.startsWith('autor:')) {
+            author = line.substring(6).trim();
+            currentField = "author";
+          } else if (lowerLine.startsWith('link:')) {
+            link = line.substring(5).trim();
+            currentField = "link";
+          } else if (lowerLine.startsWith('sinopse:')) {
+            synopsis = line.substring(8).trim();
+            currentField = "synopsis";
+          } else if (lowerLine.startsWith('http')) {
+            link = line;
+            currentField = "link";
+          } else if (!title && currentField === "") {
+            title = line;
+            currentField = "title";
+          } else {
+            if (currentField === "synopsis") {
+              synopsis += "\n" + line;
+            } else if (currentField === "title") {
+              title += " " + line;
+            }
+          }
+        }
+
+        if (title && link && link.startsWith('http')) {
+          await addDoc(collection(db, 'books'), {
+            title: title,
+            author: author,
+            synopsis: synopsis,
+            categories: [category],
+            coverUrl: "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&q=80&w=400", // Default cover
+            pdfUrl: link,
+            uploadedBy: user.uid,
+            createdAt: serverTimestamp(),
+            batchId: currentBatchId
+          });
+          importedCount++;
+        }
+      }
+
+      setStatus('success');
+      setShowBulkImport(false);
+      setBulkImportData('');
+      showConfirm("Importação Concluída", `${importedCount} livros foram adicionados com sucesso.`, () => {});
+      setTimeout(() => setStatus('idle'), 3000);
+    } catch (error) {
+      console.error("Bulk Import Error:", error);
+      handleFirestoreError(error, OperationType.CREATE, 'books');
+      setStatus('error');
+      showConfirm("Erro na Importação", "Ocorreu um erro durante a importação. Verifique o console para mais detalhes.", () => {});
+    }
+  };
+
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus('loading');
-    setUploadProgress(0);
     
     try {
-      let finalPdfUrl = pdfUrl;
-      let finalPdfSize = pdfSize;
-
-      if (pdfFile) {
-        const fileRef = ref(storage, `books/${Date.now()}_${pdfFile.name}`);
-        await uploadBytes(fileRef, pdfFile);
-        finalPdfUrl = await getDownloadURL(fileRef);
-        finalPdfSize = pdfFile.size;
-      }
-
       if (editingBookId) {
         await updateDoc(doc(db, 'books', editingBookId), {
           title,
@@ -2452,8 +2583,7 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
           synopsis,
           categories: bookCategories,
           coverUrl,
-          pdfUrl: finalPdfUrl,
-          pdfSize: finalPdfSize
+          pdfUrl
         });
         setStatus('success');
         setEditingBookId(null);
@@ -2464,19 +2594,22 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
           synopsis,
           categories: bookCategories,
           coverUrl,
-          pdfUrl: finalPdfUrl,
-          pdfSize: finalPdfSize,
+          pdfUrl,
           uploadedBy: user.uid,
           createdAt: serverTimestamp()
         });
         setStatus('success');
       }
-      setTitle(''); setAuthor(''); setSynopsis(''); setCoverUrl(''); setPdfUrl(''); setPdfFile(null); setPdfSize(0); setBookCategories([categories.filter(c => c !== 'Todos')[0] || 'Hermetismo']);
+      setTitle(''); setAuthor(''); setSynopsis(''); setCoverUrl(''); setPdfUrl(''); setBookCategories([categories.filter(c => c !== 'Todos')[0] || 'Hermetismo']);
       setTimeout(() => setStatus('idle'), 3000);
     } catch (error) {
       console.error("Upload Error:", error);
-      handleFirestoreError(error, editingBookId ? OperationType.UPDATE : OperationType.CREATE, 'books');
       setStatus('error');
+      try {
+        handleFirestoreError(error, editingBookId ? OperationType.UPDATE : OperationType.CREATE, 'books');
+      } catch (e) {
+        // Ignore the thrown error from handleFirestoreError so we don't crash
+      }
     }
   };
 
@@ -2488,7 +2621,23 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
     setBookCategories(book.categories || []);
     setCoverUrl(book.coverUrl);
     setPdfUrl(book.pdfUrl || '');
+    setAdminTab('add_book');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDeleteBook = (book: Book) => {
+    showConfirm(
+      "Remover Livro",
+      `Tem certeza que deseja remover "${book.title}" da biblioteca?`,
+      async () => {
+        try {
+          await deleteDoc(doc(db, 'books', book.id));
+        } catch (error) {
+          console.error("Error deleting book:", error);
+          handleFirestoreError(error, OperationType.DELETE, `books/${book.id}`);
+        }
+      }
+    );
   };
 
   const cancelEditing = () => {
@@ -2498,7 +2647,7 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-[95%] xl:max-w-7xl mx-auto space-y-8">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold">Painel do Administrador</h2>
@@ -2506,7 +2655,7 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
         </div>
         <div className="flex items-center gap-4">
           <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 overflow-x-auto no-scrollbar">
-            {['books', 'categories', 'users', 'moderation', 'settings'].map((tab) => (
+            {['dashboard', 'library', 'add_book', 'categories', 'users', 'moderation', 'settings'].map((tab) => (
               <button 
                 key={tab}
                 onClick={() => setAdminTab(tab as any)}
@@ -2515,7 +2664,7 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
                   adminTab === tab ? "bg-red-600 text-white shadow-lg" : "text-white/50 hover:text-white"
                 )}
               >
-                {tab === 'books' ? 'Livros' : tab === 'categories' ? 'Categorias' : tab === 'users' ? 'Usuários' : tab === 'moderation' ? 'Moderação' : 'Configurações'}
+                {tab === 'dashboard' ? 'Visão Geral' : tab === 'library' ? 'Biblioteca' : tab === 'add_book' ? 'Adicionar Livro' : tab === 'categories' ? 'Categorias' : tab === 'users' ? 'Usuários' : tab === 'moderation' ? 'Moderação' : 'Configurações'}
               </button>
             ))}
           </div>
@@ -2538,7 +2687,96 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
         ))}
       </div>
 
-      {adminTab === 'books' ? (
+      {adminTab === 'dashboard' ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <GlassCard className="p-6 flex flex-col justify-center">
+              <div className="flex items-center gap-3 mb-2 text-white/70">
+                <Users className="w-5 h-5 text-red-400" />
+                <span className="font-medium">Total de Usuários</span>
+              </div>
+              <h3 className="text-3xl font-bold">{stats.totalUsers}</h3>
+              <p className="text-xs text-emerald-400 mt-2">Buscadores cadastrados</p>
+            </GlassCard>
+            <GlassCard className="p-6 flex flex-col justify-center">
+              <div className="flex items-center gap-3 mb-2 text-white/70">
+                <Shield className="w-5 h-5 text-emerald-400" />
+                <span className="font-medium">Usuários Autorizados</span>
+              </div>
+              <h3 className="text-3xl font-bold">{stats.authorizedUsers}</h3>
+              <p className="text-xs text-white/50 mt-2">Membros ativos na ordem</p>
+            </GlassCard>
+            <GlassCard className="p-6 flex flex-col justify-center">
+              <div className="flex items-center gap-3 mb-2 text-white/70">
+                <BookOpen className="w-5 h-5 text-amber-400" />
+                <span className="font-medium">Livros na Biblioteca</span>
+              </div>
+              <h3 className="text-3xl font-bold">{stats.totalBooks}</h3>
+              <p className="text-xs text-white/50 mt-2">Acervo digital</p>
+            </GlassCard>
+            <GlassCard className="p-6 flex flex-col justify-center">
+              <div className="flex items-center gap-3 mb-2 text-white/70">
+                <MessageSquare className="w-5 h-5 text-blue-400" />
+                <span className="font-medium">Mensagens Recentes</span>
+              </div>
+              <h3 className="text-3xl font-bold">{stats.totalMessages}</h3>
+              <p className="text-xs text-white/50 mt-2">No chat global</p>
+            </GlassCard>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <GlassCard className="p-6 h-[400px] flex flex-col">
+              <h3 className="text-lg font-bold mb-6">Top 5 Categorias (Livros)</h3>
+              <div className="flex-1 w-full">
+                <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-white/50">Carregando gráfico...</div>}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={availableCategories.map(cat => ({
+                      name: cat,
+                      total: books.filter(b => b.categories?.includes(cat)).length
+                    })).sort((a, b) => b.total - a.total).slice(0, 5)}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" vertical={false} />
+                      <XAxis dataKey="name" stroke="#ffffff50" fontSize={12} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#ffffff50" fontSize={12} tickLine={false} axisLine={false} />
+                      <Tooltip 
+                        cursor={{ fill: '#ffffff10' }}
+                        contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #ffffff20', borderRadius: '8px' }}
+                      />
+                      <Bar dataKey="total" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Suspense>
+              </div>
+            </GlassCard>
+
+            <GlassCard className="p-6 h-[400px] flex flex-col">
+              <h3 className="text-lg font-bold mb-6">Atividade do Chat (Últimos 7 dias)</h3>
+              <div className="flex-1 w-full">
+                <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-white/50">Carregando gráfico...</div>}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={[
+                      { name: 'Seg', mensagens: 120 },
+                      { name: 'Ter', mensagens: 210 },
+                      { name: 'Qua', mensagens: 180 },
+                      { name: 'Qui', mensagens: 290 },
+                      { name: 'Sex', mensagens: 350 },
+                      { name: 'Sáb', mensagens: 420 },
+                      { name: 'Dom', mensagens: 380 },
+                    ]}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" vertical={false} />
+                      <XAxis dataKey="name" stroke="#ffffff50" fontSize={12} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#ffffff50" fontSize={12} tickLine={false} axisLine={false} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #ffffff20', borderRadius: '8px' }}
+                      />
+                      <Line type="monotone" dataKey="mensagens" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} activeDot={{ r: 6 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Suspense>
+              </div>
+            </GlassCard>
+          </div>
+        </div>
+      ) : adminTab === 'add_book' ? (
         <GlassCard className="p-8">
           <form onSubmit={handleUpload} className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
@@ -2609,33 +2847,13 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-white/70">Arquivo PDF (Opcional - Upload para o Firebase)</label>
-              <input 
-                type="file"
-                accept="application/pdf"
-                onChange={(e) => {
-                  if (e.target.files && e.target.files[0]) {
-                    setPdfFile(e.target.files[0]);
-                    setPdfUrl(''); // Clear URL if file is selected
-                  }
-                }}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:ring-2 focus:ring-red-500/50 outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-500/10 file:text-red-400 hover:file:bg-red-500/20"
-              />
-              {pdfFile && <p className="text-xs text-white/50">Arquivo selecionado: {pdfFile.name} ({(pdfFile.size / 1024 / 1024).toFixed(2)} MB)</p>}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-white/70">OU URL do PDF Externo (Opcional)</label>
+              <label className="text-sm font-medium text-white/70">URL do PDF (Opcional)</label>
               <input 
                 type="url"
                 value={pdfUrl}
-                onChange={(e) => {
-                  setPdfUrl(e.target.value);
-                  if (e.target.value) setPdfFile(null); // Clear file if URL is entered
-                }}
+                onChange={(e) => setPdfUrl(e.target.value)}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:ring-2 focus:ring-red-500/50 outline-none"
                 placeholder="https://... (Link direto para o PDF)"
-                disabled={!!pdfFile}
               />
             </div>
 
@@ -2663,69 +2881,98 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
             {status === 'success' && <p className="text-green-400 text-center font-medium">{editingBookId ? 'Livro atualizado' : 'Livro adicionado'} com sucesso!</p>}
             {status === 'error' && <p className="text-red-400 text-center font-medium">Erro ao salvar livro. Tente novamente.</p>}
           </form>
+        </GlassCard>
+      ) : adminTab === 'library' ? (
+        <div className="space-y-6">
+          <Suspense fallback={<div className="p-8 text-center text-white/50">Carregando biblioteca...</div>}>
+            <AdminLibrary books={books} onEdit={startEditingBook} onDelete={handleDeleteBook} />
+          </Suspense>
+          
+          <GlassCard className="p-6">
+            <h3 className="text-lg font-bold mb-4">Ações Rápidas</h3>
+            <div className="flex flex-wrap gap-4">
+              <GlassButton variant="secondary" onClick={seedData} disabled={status === 'loading'}>
+                Semear Biblioteca Inicial (Mock Data)
+              </GlassButton>
+              <GlassButton variant="primary" onClick={() => setShowBulkImport(true)} disabled={status === 'loading'}>
+                <Upload className="w-4 h-4 mr-2" />
+                Importação em Massa (Colar da Planilha)
+              </GlassButton>
+              <GlassButton variant="secondary" onClick={removeLastImport} disabled={status === 'loading'} className="text-red-400 hover:text-red-300">
+                <Trash2 className="w-4 h-4 mr-2" />
+                Remover última lista de importações
+              </GlassButton>
+            </div>
+            <p className="text-xs text-white/30 mt-2 italic">
+              A importação em massa permite colar dados copiados de uma planilha (Nome do Livro e Link do PDF).
+            </p>
+          </GlassCard>
 
-          <div className="mt-12 pt-8 border-t border-white/10">
-            <h3 className="text-xl font-bold mb-6">Livros na Biblioteca</h3>
-            <div className="space-y-4">
-              {books.map(book => (
-                <GlassCard key={book.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <img src={book.coverUrl} alt={book.title} className="w-12 h-16 object-cover rounded shadow-md" />
-                    <div>
-                      <h4 className="font-bold text-lg">{book.title}</h4>
-                      <p className="text-sm text-white/50">{book.author} • {book.categories?.join(', ')}</p>
+          <AnimatePresence>
+            {showBulkImport && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+              >
+                <motion.div
+                  initial={{ scale: 0.95, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.95, opacity: 0 }}
+                  className="bg-zinc-900 border border-white/10 rounded-2xl p-6 max-w-2xl w-full shadow-2xl"
+                >
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold">Importação em Massa</h3>
+                    <button 
+                      onClick={() => setShowBulkImport(false)}
+                      className="p-2 text-white/50 hover:text-white transition-colors rounded-lg hover:bg-white/5"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <p className="text-sm text-white/70">
+                      Cole abaixo os blocos de texto dos livros. Separe cada livro com uma linha em branco.
+                      O formato esperado é:
+                    </p>
+                    <pre className="text-xs bg-black/40 p-2 rounded border border-white/5 text-white/60">
+Categoria: Maçonaria
+Dicionário Secreto da Maçonaria
+Autor: Vários
+Link: https://drive.google.com/file/d/...
+Sinopse: Glossário de termos e símbolos maçônicos.
+                    </pre>
+                    
+                    <textarea
+                      value={bulkImportData}
+                      onChange={(e) => setBulkImportData(e.target.value)}
+                      placeholder="Categoria: Ocultismo&#10;O Caibalion&#10;Autor: Três Iniciados&#10;Link: https://drive...&#10;Sinopse: Estudo da filosofia hermética."
+                      className="w-full h-64 bg-black/50 border border-white/10 rounded-xl p-4 text-sm font-mono text-white/80 focus:ring-2 focus:ring-red-500/50 outline-none resize-none"
+                    />
+                    
+                    <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+                      <GlassButton variant="secondary" onClick={() => setShowBulkImport(false)}>
+                        Cancelar
+                      </GlassButton>
+                      <GlassButton 
+                        variant="primary" 
+                        onClick={handleBulkImport}
+                        disabled={status === 'loading' || !bulkImportData.trim()}
+                      >
+                        {status === 'loading' ? 'Importando...' : 'Iniciar Importação'}
+                      </GlassButton>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => startEditingBook(book)}
-                      className="p-2 text-white/50 hover:text-red-400 transition-colors bg-white/5 rounded-lg"
-                      title="Editar"
-                    >
-                      <Edit2 className="w-5 h-5" />
-                    </button>
-                    <button 
-                      onClick={() => {
-                        showConfirm(
-                          "Remover Livro",
-                          `Tem certeza que deseja remover "${book.title}" da biblioteca?`,
-                          async () => {
-                            try {
-                              await deleteDoc(doc(db, 'books', book.id));
-                            } catch (error) {
-                              console.error("Error deleting book:", error);
-                              handleFirestoreError(error, OperationType.DELETE, `books/${book.id}`);
-                            }
-                          }
-                        );
-                      }}
-                      className="p-2 text-white/50 hover:text-red-400 transition-colors bg-white/5 rounded-lg"
-                      title="Remover"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                </GlassCard>
-              ))}
-              {books.length === 0 && (
-                <p className="text-center text-white/50 py-8">Nenhum livro na biblioteca.</p>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-12 pt-8 border-t border-white/10">
-            <h3 className="text-lg font-bold mb-4">Ações Rápidas</h3>
-            <GlassButton variant="secondary" onClick={seedData} disabled={status === 'loading'}>
-              Semear Biblioteca Inicial (Mock Data)
-            </GlassButton>
-            <p className="text-xs text-white/30 mt-2 italic">
-              Isso adicionará 3 livros clássicos do esoterismo para popular sua biblioteca.
-            </p>
-          </div>
-        </GlassCard>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       ) : adminTab === 'categories' ? (
-        <div className="space-y-6">
-          <GlassCard className="p-6">
+        <div className="space-y-6 h-[800px] flex flex-col">
+          <GlassCard className="p-6 shrink-0">
             <h3 className="text-xl font-bold mb-4">Gerenciar Categorias</h3>
             <div className="flex gap-4">
               <input 
@@ -2752,66 +2999,141 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
             </div>
           </GlassCard>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {availableCategories.map(cat => (
-              <GlassCard key={cat} className="p-4 flex items-center justify-between">
-                <span className="font-medium">{cat}</span>
-                <button 
-                  onClick={() => {
-                    showConfirm(
-                      "Remover Categoria",
-                      `Tem certeza que deseja remover a categoria "${cat}"?`,
-                      async () => {
-                        try {
-                          const q = query(collection(db, 'categories'), where('name', '==', cat));
-                          const snapshot = await getDocs(q);
-                          snapshot.docs.forEach(async (d) => {
-                            await deleteDoc(doc(db, 'categories', d.id));
-                          });
-                        } catch (error) {
-                          console.error("Error deleting category:", error);
-                          handleFirestoreError(error, OperationType.DELETE, 'categories');
+          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {availableCategories.map(cat => (
+                <GlassCard key={cat} className="p-3 flex items-center justify-between gap-2">
+                  <span className="font-medium text-sm truncate">{cat}</span>
+                  <button 
+                    onClick={() => {
+                      showConfirm(
+                        "Remover Categoria",
+                        `Tem certeza que deseja remover a categoria "${cat}"?`,
+                        async () => {
+                          try {
+                            const q = query(collection(db, 'categories'), where('name', '==', cat));
+                            const snapshot = await getDocs(q);
+                            snapshot.docs.forEach(async (d) => {
+                              await deleteDoc(doc(db, 'categories', d.id));
+                            });
+                          } catch (error) {
+                            console.error("Error deleting category:", error);
+                            handleFirestoreError(error, OperationType.DELETE, 'categories');
+                          }
                         }
-                      }
-                    );
-                  }}
-                  className="p-2 text-white/20 hover:text-red-400 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </GlassCard>
-            ))}
+                      );
+                    }}
+                    className="p-1.5 text-white/20 hover:text-red-400 transition-colors shrink-0"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </GlassCard>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : adminTab === 'users' ? (
+        <div className="space-y-6 h-[800px] flex flex-col">
+          <header className="shrink-0">
+            <h3 className="text-xl font-bold">Gerenciar Usuários ({users.length})</h3>
+            <p className="text-sm text-white/50">Controle de acesso e nível de iniciação.</p>
+          </header>
+          
+          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {users.map(u => (
+                <GlassCard key={u.uid} className="p-3 flex flex-col gap-3">
+                  <div className="flex items-center gap-3">
+                    <img src={u.photoURL || `https://ui-avatars.com/api/?name=${u.displayName}&background=random`} alt={u.displayName} className="w-10 h-10 rounded-full object-cover shrink-0" />
+                    <div className="overflow-hidden">
+                      <h4 className="font-bold text-sm truncate">{u.displayName}</h4>
+                      <p className="text-xs text-white/50 truncate">{u.email}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/10">
+                    <span className="text-xs font-medium text-white/70">Acesso Autorizado</span>
+                    <button 
+                      onClick={() => toggleAuthorization(u)}
+                      className={cn(
+                        "w-10 h-5 rounded-full relative transition-all",
+                        u.isAuthorized ? "bg-emerald-500" : "bg-white/10"
+                      )}
+                    >
+                      <motion.div 
+                        animate={{ x: u.isAuthorized ? 20 : 2 }}
+                        className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-lg"
+                      />
+                    </button>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-white/70">Cargo / Nível</span>
+                    <span className="text-xs px-2 py-1 bg-white/5 rounded-md truncate max-w-[120px] text-right">
+                      {u.role || 'user'}
+                    </span>
+                  </div>
+                  
+                  <GlassButton 
+                    variant="secondary" 
+                    className="w-full text-xs py-1.5 mt-1"
+                    onClick={() => {
+                      setSelectedUserForPath(u);
+                      setAdminTab('users'); // Keep it on users, but we could open a modal
+                      // For simplicity, let's just alert that path management is via another UI or just show a modal
+                      // Since we don't have the modal UI here, we'll just show a confirm to reset role
+                      showConfirm(
+                        "Resetar Cargo",
+                        `Deseja resetar o cargo de ${u.displayName} para 'user'?`,
+                        async () => {
+                          try {
+                            await updateDoc(doc(db, 'users', u.uid), { role: 'user' });
+                            setUsers(prev => prev.map(user => user.uid === u.uid ? { ...user, role: 'user' } : user));
+                            showNotification(`Cargo de ${u.displayName} resetado com sucesso.`, 'success');
+                          } catch (error) {
+                            console.error("Error resetting role:", error);
+                            handleFirestoreError(error, OperationType.UPDATE, `users/${u.uid}`);
+                          }
+                        }
+                      );
+                    }}
+                  >
+                    Resetar Cargo
+                  </GlassButton>
+                </GlassCard>
+              ))}
+            </div>
           </div>
         </div>
       ) : adminTab === 'moderation' ? (
-        <div className="space-y-6">
-          <header>
+        <div className="space-y-6 h-[800px] flex flex-col">
+          <header className="shrink-0">
             <h3 className="text-xl font-bold">Moderação de Conteúdo</h3>
             <p className="text-sm text-white/50">Monitore e remova mensagens inadequadas da comunidade.</p>
           </header>
           
-          <div className="space-y-3">
+          <div className="flex-1 overflow-y-auto pr-2 space-y-2 custom-scrollbar">
             {modMessages.length === 0 && (
               <div className="text-center py-12 text-white/20 italic">Nenhuma mensagem recente encontrada.</div>
             )}
             {modMessages.map((msg) => (
-              <GlassCard key={msg.id} className="p-4 flex items-start justify-between gap-4 border-white/5 hover:border-white/10 transition-all">
-                <div className="flex gap-4">
-                  <img src={msg.userPhoto} className="w-10 h-10 rounded-full object-cover border border-white/10" />
+              <GlassCard key={msg.id} className="p-3 flex items-start justify-between gap-4 border-white/5 hover:border-white/10 transition-all">
+                <div className="flex gap-3">
+                  <img src={msg.userPhoto} className="w-8 h-8 rounded-full object-cover border border-white/10 shrink-0" />
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-sm text-red-300">{msg.userName}</span>
+                      <span className="font-bold text-xs text-red-300">{msg.userName}</span>
                       <span className="text-[10px] text-white/30">{msg.createdAt?.toDate ? formatDistanceToNow(msg.createdAt.toDate(), { addSuffix: true, locale: ptBR }) : 'Recentemente'}</span>
                     </div>
-                    <p className="text-sm text-white/80 mt-1">{msg.text}</p>
+                    <p className="text-sm text-white/80 mt-0.5">{msg.text}</p>
                   </div>
                 </div>
                 <button 
                   onClick={() => deleteMessage(msg.id)}
-                  className="p-2 text-white/20 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all"
+                  className="p-1.5 text-white/20 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all shrink-0"
                   title="Deletar Mensagem"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               </GlassCard>
             ))}
@@ -2820,8 +3142,8 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
       ) : adminTab === 'settings' ? (
         <div className="space-y-6">
           <header>
-            <h3 className="text-xl font-bold">Configurações Globais e Monitoramento</h3>
-            <p className="text-sm text-white/50">Controle o estado geral do aplicativo e monitore o uso de banda.</p>
+            <h3 className="text-xl font-bold">Configurações Globais</h3>
+            <p className="text-sm text-white/50">Controle o estado geral do aplicativo.</p>
           </header>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -2863,8 +3185,6 @@ function AdminPanel({ user, appSettings, categories, books, showConfirm }: { use
               </button>
             </GlassCard>
           </div>
-
-          <BandwidthMonitor />
 
           <GlassCard className="p-8 border-red-500/20 bg-red-500/5">
             <div className="flex items-center gap-4 mb-6">

@@ -94,31 +94,33 @@ service cloud.firestore {
     // ===============================================================
 
     function isValidUser(data) {
-      return hasOnlyAllowedFields(['uid', 'email', 'displayName', 'photoURL', 'role', 'isAuthorized', 'meritPoints', 'preferences', 'seenOracleMessages', 'lastChatActivity', 'readingHistory', 'commentedBooks']) &&
+      return hasOnlyAllowedFields(['uid', 'email', 'displayName', 'photoURL', 'role', 'isAuthorized', 'meritPoints', 'preferences', 'seenOracleMessages', 'lastChatActivity', 'readingHistory', 'commentedBooks', 'hasSeenOnboarding', 'favoriteBooks']) &&
              data.uid == request.auth.uid &&
              data.email is string && isValidEmail(data.email) &&
              isValidString('displayName', 1, 100) &&
              (data.photoURL == "" || isValidUrl(data.photoURL)) &&
-             data.role in ['admin', 'user'] &&
+             data.role in ['admin', 'user', 'Neófito do Silêncio (Calcinação)', 'Buscador da Correspondência (Sublimação)', 'Praticante da Vibração (Solução)', 'Alquimista do Pensamento (Destilação)', 'Mestre da Unidade (Coagulação)'] &&
              (!('isAuthorized' in data) || data.isAuthorized is bool) &&
              (!('meritPoints' in data) || data.meritPoints is number) &&
              (!('preferences' in data) || data.preferences is map) &&
              (!('seenOracleMessages' in data) || isValidList(data.seenOracleMessages, 1000)) &&
              (!('lastChatActivity' in data) || (data.lastChatActivity is string && data.lastChatActivity.size() <= 100)) &&
              (!('readingHistory' in data) || isValidList(data.readingHistory, 1000)) &&
-             (!('commentedBooks' in data) || isValidList(data.commentedBooks, 1000));
+             (!('commentedBooks' in data) || isValidList(data.commentedBooks, 1000)) &&
+             (!('hasSeenOnboarding' in data) || data.hasSeenOnboarding is bool) &&
+             (!('favoriteBooks' in data) || isValidList(data.favoriteBooks, 1000));
     }
 
     function isValidBook(data) {
-      return hasOnlyAllowedFields(['title', 'author', 'synopsis', 'categories', 'coverUrl', 'pdfUrl', 'pdfSize', 'uploadedBy', 'createdAt']) &&
+      return hasOnlyAllowedFields(['title', 'author', 'synopsis', 'categories', 'coverUrl', 'pdfUrl', 'uploadedBy', 'createdAt', 'batchId']) &&
              hasRequiredFields(['title', 'author', 'categories', 'createdAt']) &&
              isValidString('title', 1, 200) &&
              isValidString('author', 1, 100) &&
              isValidOptionalString('synopsis', 0, 2000) &&
+             isValidOptionalString('batchId', 0, 100) &&
              isValidList(data.categories, 10) &&
              (data.coverUrl == "" || isValidUrl(data.coverUrl)) &&
              (!('pdfUrl' in data) || data.pdfUrl == "" || isValidUrl(data.pdfUrl)) &&
-             (!('pdfSize' in data) || data.pdfSize is number) &&
              isRecentOrUnchanged('createdAt');
     }
 
@@ -297,12 +299,6 @@ service cloud.firestore {
     match /settings/{settingId} {
       allow read: if true;
       allow write: if isAdmin();
-    }
-
-    // Bandwidth Stats
-    match /bandwidthStats/{dateId} {
-      allow read: if isAdmin();
-      allow write: if isAuthenticated(); // Allow any logged-in user to increment stats
     }
 
     // Voice Rooms

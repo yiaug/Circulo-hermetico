@@ -95,42 +95,6 @@ export function PDFReader({
     };
   }, [pageNumber, numPages]);
 
-  // Track bandwidth usage when PDF is loaded
-  useEffect(() => {
-    const trackBandwidth = async () => {
-      if (!book.pdfUrl || book.pdfUrl.includes('drive.google.com') || !book.pdfSize) return;
-      
-      try {
-        const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-        const statsRef = doc(db, 'bandwidthStats', dateStr);
-        
-        // We use a simple get and set here. In a high-traffic production app, 
-        // you would use a Firestore Transaction or FieldValue.increment()
-        const statsSnap = await getDoc(statsRef);
-        
-        if (statsSnap.exists()) {
-          const data = statsSnap.data();
-          await setDoc(statsRef, {
-            totalBytes: (data.totalBytes || 0) + book.pdfSize,
-            reads: (data.reads || 0) + 1,
-            lastUpdated: serverTimestamp()
-          }, { merge: true });
-        } else {
-          await setDoc(statsRef, {
-            date: dateStr,
-            totalBytes: book.pdfSize,
-            reads: 1,
-            lastUpdated: serverTimestamp()
-          });
-        }
-      } catch (error) {
-        console.error("Error tracking bandwidth:", error);
-      }
-    };
-
-    trackBandwidth();
-  }, [book.id]);
-
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
     setLoading(false);
