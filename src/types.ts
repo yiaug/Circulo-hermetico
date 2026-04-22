@@ -16,6 +16,7 @@ export interface UserProfile {
   seenOracleMessages?: number[];
   hasSeenOnboarding?: boolean;
   favoriteBooks?: string[];
+  createdAt?: any;
 }
 
 export interface ReadingProgress {

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Search, Edit2, Trash2, BookOpen } from 'lucide-react';
 import { Book } from '../types';
-import { GlassCard } from '../App';
+import { GlassCard } from './ui/GlassCard';
 
 interface AdminLibraryProps {
   books: Book[];

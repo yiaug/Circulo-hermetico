@@ -22,8 +22,42 @@ async function startServer() {
     }
   });
 
-  app.use(cors());
-  app.use(express.json());
+  // Trust the first proxy in front of Express (needed for Cloud Run / reverse proxies)
+  app.set("trust proxy", 1);
+  app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: false,
+    frameguard: false
+  }));
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, 
+    max: 100, 
+  });
+  app.use(limiter);
+  const allowedOrigins = [
+    'https://ais-pre-3co5u3o6lfljwy3witc6wc-364257698549.us-west2.run.app',
+    'https://circulo-hermetico.onrender.com'
+  ];
+
+  if (process.env.PRODUCTION_URL) {
+    // Remove tralilng slash if exists
+    allowedOrigins.push(process.env.PRODUCTION_URL.replace(/\/$/, ''));
+  }
+
+  app.use(cors({
+    origin: process.env.NODE_ENV === 'production' ? (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    } : '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+  }));
+  app.use(express.json({ limit: '10kb' }));
 
   // Socket.io logic for Voice Chat Signaling
   const userSocketMap = new Map<string, string>();

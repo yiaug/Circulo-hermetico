@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { BookOpen, Flame, Droplets, Wind, Mountain, Sparkles, Eye, Zap, Waves, Compass } from 'lucide-react';
-import { GlassCard } from '../App';
+import { GlassCard } from './ui/GlassCard';
 
 export function CasaAlquimista() {
   return (

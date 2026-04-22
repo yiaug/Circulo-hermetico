@@ -5,27 +5,27 @@ import { ZoomIn, ZoomOut, Moon, Sun, X, ChevronLeft, ChevronRight, List } from '
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { UserProfile, Book, ReadingProgress } from '../types';
-import { GlassButton } from '../App';
+import { GlassButton } from './ui/GlassButton';
 import { cn } from '../lib/utils';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
+import { useAuth } from '../contexts/AuthContext';
 
 // Set up PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 export function PDFReader({ 
   book, 
-  user, 
   onClose 
 }: { 
   book: Book; 
-  user: UserProfile; 
   onClose: () => void; 
 }) {
+  const { user, updatePreferences } = useAuth();
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
-  const [scale, setScale] = useState(1.0);
-  const [isDarkMode, setIsDarkMode] = useState(user.preferences?.darkMode || false);
+  const [scale, setScale] = useState(user?.preferences?.fontSize || 1.0);
+  const [isDarkMode, setIsDarkMode] = useState(user?.preferences?.darkMode || false);
   const [showOutline, setShowOutline] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -175,7 +175,13 @@ export function PDFReader({
           </div>
           
           <button 
-            onClick={() => setIsDarkMode(!isDarkMode)} 
+            onClick={() => {
+              const newMode = !isDarkMode;
+              setIsDarkMode(newMode);
+              if (user) {
+                updatePreferences({ darkMode: newMode });
+              }
+            }} 
             className="p-2 hover:bg-white/10 rounded-full transition-colors"
             title="Alternar Modo Noturno"
           >
